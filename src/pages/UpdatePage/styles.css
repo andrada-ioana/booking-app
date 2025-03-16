@@ -1,0 +1,108 @@
+.update-form {
+    margin-right: 5%;
+    margin-left: 5%;
+    margin-top: 30px;
+}
+
+
+.dropzone {
+    border: 2px dashed #cccccc;
+    border-radius: 5px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.dropzone p {
+    margin: 0;
+    font-size: 16px;
+    color: #666666;
+}
+
+.label {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 50px;
+}
+
+.input {
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    margin-bottom: 30px;
+}
+
+.textarea {
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    height: 200px;
+    margin-bottom: 30px;
+}
+
+.facilities-list-update {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    color: black;
+    margin-bottom: 30px;
+}
+
+.facility-item {
+    margin-right: 10px;
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.image-item {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.image-button {
+    margin-right: 10px;
+    background-color: white;
+    border-color: #8011FF;
+    color: #8011FF;
+    font-weight: bold;
+    margin-top: 10px;
+    border-radius: 10px;
+    padding: 5px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.images-preview {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 60px;
+}
+
+.submit-update {
+    position: relative;
+    margin-left: 35%;
+    margin-right: 35%;
+    background-color: #8011FF;
+    border-color: #8011FF;
+    color: white;
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 20px;
+    width: 30%;
+    margin-bottom: 50px;
+}

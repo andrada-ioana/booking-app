@@ -1,0 +1,38 @@
+.filter-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    border: solid thin grey;
+    padding: 1%;
+    height: max-content;
+    width: 100%;
+    font-size: 18px;
+}
+
+.filter-label {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding-left: 5px;
+    padding-right: 5px;
+    margin-bottom: 5px;
+}
+
+.filter-option {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-left: 5%;
+}
+
+.filter-radio {
+    margin-right: 5px;
+}
+
+.filter-radio:checked {
+    accent-color: #8011FF;
+}
