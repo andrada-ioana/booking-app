@@ -23,6 +23,7 @@ const HomePage = ({filtersList, hotelsList}) => {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedStars, setSelectedStars] = useState([]);
     const [filteredHotels, setFilteredHotels] = useState([]);
+    const [sortOrder, setSortOrder] = useState('asc');
 
     useEffect(() => {
         if (location.state?.message) {
@@ -68,6 +69,20 @@ const HomePage = ({filtersList, hotelsList}) => {
         setFilteredHotels(filtered);
     }, [searchTerm, selectedStars, hotelsList]);
 
+    const sortHotelsByStars = () => {
+        console.log("Sort Order:", sortOrder);
+        if (sortOrder === 'asc') {
+            const sortedHotels = [...filteredHotels].sort((a, b) => b.number_of_stars - a.number_of_stars);
+            setFilteredHotels(sortedHotels);
+            setSortOrder('desc');
+        } else {
+            const sortedHotels = [...filteredHotels].sort((a, b) => a.number_of_stars - b.number_of_stars);
+            setFilteredHotels(sortedHotels);
+            setSortOrder('asc');
+        }
+        console.log("Sort Order:", sortOrder);
+    }
+
     return (
         <div>
             <Header />
@@ -82,6 +97,9 @@ const HomePage = ({filtersList, hotelsList}) => {
             <Link to='/add-hotel' className='add-hotel' >
                 <CustomButton label="Add hotel" className="add-hotel-button" />
             </Link>
+            <div className='sort-hotels'>
+                <CustomButton label="Sort by number of stars" className="sort-button" onClick={sortHotelsByStars} />
+            </div>
             <div className='hotel-filters'>
                 <div className="filters">
                     {filtersList.map((filter) =>
