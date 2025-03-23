@@ -13,6 +13,7 @@ import MessageModal from '../../components/MessageModal';
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
+import PaginatedList from '../../components/PaginatedList';
 
 const HomePage = ({filtersList, hotelsList}) => {
     const location = useLocation();
@@ -24,6 +25,9 @@ const HomePage = ({filtersList, hotelsList}) => {
     const [selectedStars, setSelectedStars] = useState([]);
     const [filteredHotels, setFilteredHotels] = useState([]);
     const [sortOrder, setSortOrder] = useState('asc');
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
 
     useEffect(() => {
         if (location.state?.message) {
@@ -67,6 +71,7 @@ const HomePage = ({filtersList, hotelsList}) => {
     
         console.log("Filtered Hotels:", filtered);
         setFilteredHotels(filtered);
+        setCurrentPage(1);
     }, [searchTerm, selectedStars, hotelsList]);
 
     const sortHotelsByStars = () => {
@@ -82,6 +87,37 @@ const HomePage = ({filtersList, hotelsList}) => {
         }
         console.log("Sort Order:", sortOrder);
     }
+
+    console.log("Filtered Hotels with Valid Prices:", filteredHotels.map(h => h.price_per_night));
+
+    const totalPages = Math.ceil(filteredHotels.length / itemsPerPage);
+    const currentItems = filteredHotels.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    const averagePrice = filteredHotels.length > 0 
+        ? filteredHotels.reduce((sum, hotel) => {
+            console.log("Hotel Name:", hotel.name, "| Hotel Price:", hotel.price_per_night);
+            return sum + parseFloat(hotel.price_per_night);
+        }, 0) / filteredHotels.length 
+        : 0;
+
+    const renderHotelCard = (hotel) => {
+        let highlightStyle = {};
+
+        if (filteredHotels.length > 0) {
+            if (parseInt(hotel.price_per_night) > averagePrice + 50) {
+                highlightStyle = { border: "2px solid gold" }; // Expensive hotels
+            } else if (parseInt(hotel.price_per_night) < averagePrice - 50) {
+                highlightStyle = { border: "2px solid #CD7F32" }; // Cheap hotels
+            } else {
+                highlightStyle = { border: "2px solid silver" }; // Around the average price
+            }
+        }
+        return (
+            <HotelCard key={hotel.name} hotel={hotel} styleCard={highlightStyle} />
+        );
+    };
+
+    console.log("Final Average Price:", averagePrice);
 
     return (
         <div>
@@ -100,6 +136,13 @@ const HomePage = ({filtersList, hotelsList}) => {
             <div className='sort-hotels'>
                 <CustomButton label="Sort by number of stars" className="sort-button" onClick={sortHotelsByStars} />
             </div>
+            <div className='legend'>
+                <div><u>Legend</u></div> 
+                <div style={{color: "#CD7F32"}}>Bronze - cheap</div>
+                <div style={{color: "silver"}}>Silver - average</div>
+                <div style={{color: "gold"}}>Gold - expensive</div>
+            </div>
+            
             <div className='hotel-filters'>
                 <div className="filters">
                     {filtersList.map((filter) =>
@@ -118,10 +161,30 @@ const HomePage = ({filtersList, hotelsList}) => {
                     )}
                 </div>
                 <div className="hotel-list">
-                    {filteredHotels.length > 0 ? (
-                        filteredHotels.map((hotel) => <HotelCard key={hotel.name} hotel={hotel} />)
-                    ) : (
+                    {currentItems.length > 0 ? (
+                        console.log("Average Price:", averagePrice),
+                        currentItems.map((hotel) => 
+                            renderHotelCard(hotel)
+                        )
+                        ) : (
                         <p className="no-hotels">No hotels match your criteria.</p>
+                    )}
+                    {filteredHotels.length > itemsPerPage && (
+                        <div className="pagination">
+                            <button
+                                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                            >
+                                Prev
+                            </button>
+                            <span> Page {currentPage} of {totalPages} </span>
+                            <button
+                                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                            >
+                                Next
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>

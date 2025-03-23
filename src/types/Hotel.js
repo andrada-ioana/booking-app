@@ -1,5 +1,5 @@
 class Hotel {
-    constructor(name, number_of_stars, location, location_maps, cover_image, images, description, facilities) {
+    constructor(name, number_of_stars, location, location_maps, cover_image, images, description, facilities, price_per_night) {
         this.name = name;
         this.number_of_stars = number_of_stars;
         this.location = location;
@@ -8,6 +8,7 @@ class Hotel {
         this.facilities = facilities;
         this.cover_image = cover_image;
         this.images = images;
+        this.price_per_night = price_per_night;
     }
 };
 

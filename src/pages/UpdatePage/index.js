@@ -21,6 +21,7 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
         nrstars: 0,
         location: '',
         location_maps: '',
+        price_per_night: 0,
         description: '',
         facilities: '',
         cover_image: '',
@@ -34,6 +35,7 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
                 nrstars: hotel.number_of_stars,
                 location: hotel.location,
                 location_maps: hotel.location_maps,
+                price_per_night: hotel.price_per_night,
                 description: hotel.description,
                 facilities: hotel.facilities,
                 cover_image: hotel.cover_image,
@@ -90,7 +92,8 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
             formData.cover_image,
             formData.images,
             formData.description,
-            formData.facilities
+            formData.facilities,
+            formData.price_per_night
         );
         onUpdate(updatedHotel);
         navigate(`/hotel/${formData.fname}`);
@@ -130,6 +133,10 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
                 <div>
                     <label htmlFor="location_maps" className="label">Location maps: </label>
                     <input type="text" id="location_maps" name="location_maps" className="input" value={formData.location_maps} onChange={handleChange} />
+                </div>
+                <div>
+                    <label htmlFor="price_per_night" className="label">Price per night: </label>
+                    <input type="number" id="price_per_night" name="price_per_night" className="input" value={formData.price_per_night} onChange={handleChange} />
                 </div>
                 <div>
                     <label htmlFor="description" className="label">Description: </label>

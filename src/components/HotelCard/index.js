@@ -7,7 +7,7 @@ import { BiSolidRightArrow } from "react-icons/bi";
 import Hotel from '../../types/Hotel';
 import { Link } from 'react-router-dom';
 
-const HotelCard = ({hotel}) => {
+const HotelCard = ({hotel, styleCard}) => {
     const noImageAvailable = "../../assets/no-image-available.jpg";
     const stars = [];
     for (let i = 0; i < hotel.number_of_stars; i++) {
@@ -17,7 +17,7 @@ const HotelCard = ({hotel}) => {
         stars.push(<FaStar key={i} color='gray' />);
     }
     return (
-    <div className='hotel-card'>
+    <div className='hotel-card' style={styleCard}>
         <img src={hotel.cover_image || noImageAvailable} alt="hotel image" className='hotel-image' />
         <div className='hotel-content'>
             <div className='hotel-info'>
@@ -26,6 +26,7 @@ const HotelCard = ({hotel}) => {
                     {stars}
                 </div>
                 <a href={hotel.location_maps} target='_blank' className='location-maps'>{hotel.location}</a>
+                <div style={{fontSize: "14px"}}>{hotel.price_per_night} RON/noapte</div>
             </div>
             <Link to={`/hotel/${hotel.name}`} className='description-link'>
                 <CustomButton label="Vedeti disponibilitatile" className="button-container" iconBack={<BiSolidRightArrow color='white' />} />

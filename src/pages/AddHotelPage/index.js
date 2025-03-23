@@ -16,6 +16,7 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
         nrstars: "",
         location: "",
         location_maps: "",
+        price: "",
         description: "",
         facilities: [],
         cover_image: "",
@@ -47,6 +48,11 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
             newErrors.location = "Location is required";
         } else if (formData.location.length > 200) {
             newErrors.location = "Location must be at most 200 characters";
+        }
+
+        const price = parseInt(formData.price, 10);
+        if (!price || price <= 0) {
+            newErrors.price = "Price per night must be a positive number";
         }
 
         if (!formData.description.trim()) {
@@ -100,7 +106,8 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
             formData.cover_image,
             formData.images,
             formData.description,
-            formData.facilities
+            formData.facilities,
+            parseInt(formData.price, 10),
         );
 
         onAdd(newHotel);
@@ -151,6 +158,12 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
                 <div>
                     <label htmlFor="location_maps" className="label">Location maps: </label>
                     <input type="text" id="location_maps" name="location_maps" className="input" value={formData.location_maps} onChange={handleChange} />
+                </div>
+
+                <div>
+                    <label htmlFor="price" className="label">Price per night: </label>
+                    <input type="number" id="price" name="price" className="input" value={formData.price} onChange={handleChange} />
+                    {errors.price && <p className="error">{errors.price}</p>}
                 </div>
 
                 <div>
