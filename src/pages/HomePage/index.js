@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import PaginatedList from '../../components/PaginatedList';
+import HotelCharts from '../../components/HotelCharts';
 
 const HomePage = ({filtersList, hotelsList}) => {
     const location = useLocation();
@@ -132,6 +133,9 @@ const HomePage = ({filtersList, hotelsList}) => {
             </div>
             <Link to='/add-hotel' className='add-hotel' >
                 <CustomButton label="Add hotel" className="add-hotel-button" />
+            </Link>
+            <Link to='/view-statistics' className='view-statistics' >
+                <CustomButton label="View statistics" className="view-statistics-button" />
             </Link>
             <div className='sort-hotels'>
                 <CustomButton label="Sort by number of stars" className="sort-button" onClick={sortHotelsByStars} />

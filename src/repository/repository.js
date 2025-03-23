@@ -1,6 +1,28 @@
 import { IoBedOutline } from "react-icons/io5";
 import Hotel from "../types/Hotel";
 
+const generateRandomHotel = (index) => {
+    const locations = ["New York", "Paris", "London", "Tokyo", "Dubai", "Cluj-Napoca"];
+    const facilities = ["Free WiFi", "Swimming Pool", "Spa", "Gym", "Restaurant", "Free Parking"];
+    const images = [""];
+
+    return new Hotel(
+        `Hotel ${index}`,
+        Math.floor(Math.random() * 5) + 1, 
+        locations[Math.floor(Math.random() * locations.length)], 
+        "https://example.com/maps", 
+        images[Math.floor(Math.random() * images.length)],
+        [images[Math.floor(Math.random() * images.length)]],
+        "A randomly generated hotel for testing purposes.", 
+        [facilities[Math.floor(Math.random() * facilities.length)]], 
+        Math.floor(Math.random() * 500) + 50 
+    );
+};
+
+const generateRandomHotels = (count) => {
+    return Array.from({ length: count }, (_, i) => generateRandomHotel(i + 1));
+};
+
 class Repository {
   constructor() {
     this.allFacilities = ["Free WiFi", "Swimming Pool", "Spa", "Free Parking", "Gym", "Restaurant", "Free Breakfast", "Airport Shuttle", "Pet Friendly"];
@@ -47,32 +69,9 @@ class Repository {
             ["Free Breakfast", "Airport Shuttle", "Pet Friendly"],
             400
         ),
-        ...this.generateRandomHotels(50)
+        ...generateRandomHotels(50)
     ];
-  }
-
-    generateRandomHotel = (index) => {
-        const locations = ["New York", "Paris", "London", "Tokyo", "Dubai", "Cluj-Napoca"];
-        const facilities = ["Free WiFi", "Swimming Pool", "Spa", "Gym", "Restaurant", "Free Parking"];
-        const images = [""];
-
-        return new Hotel(
-            `Hotel ${index}`,
-            Math.floor(Math.random() * 5) + 1, 
-            locations[Math.floor(Math.random() * locations.length)], 
-            "https://example.com/maps", 
-            images[Math.floor(Math.random() * images.length)],
-            [images[Math.floor(Math.random() * images.length)]],
-            "A randomly generated hotel for testing purposes.", 
-            [facilities[Math.floor(Math.random() * facilities.length)]], 
-            Math.floor(Math.random() * 500) + 50 
-        );
-    };
-
-    generateRandomHotels = (count) => {
-        return Array.from({ length: count }, (_, i) => this.generateRandomHotel(i + 1));
-    };
-    
+  } 
 
     getHotelsList() {
         return this.hotelsList;
@@ -106,4 +105,5 @@ class Repository {
     }
 }
 
+export { generateRandomHotels }
 export default Repository;

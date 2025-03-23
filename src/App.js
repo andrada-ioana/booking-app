@@ -8,6 +8,7 @@ import UpdatePage from './pages/UpdatePage';
 import Repository from './repository/repository.js';
 import { useState } from 'react';
 import AddHotelPage from './pages/AddHotelPage/index.js';
+import StatisticsPage from './pages/StatisticsPage/index.js';
 
 function App() {
   const repo = new Repository();
@@ -42,6 +43,7 @@ function App() {
         <Route path="/hotel/:name" element={<HotelDescriptionPage hotels={hotels} onDelete={handleDelete} />} />
         <Route path="/update/:name" element={<UpdatePage hotels={hotels} onUpdate={handleUpdate} allFacilities={facilities} />} />
         <Route path="/add-hotel" element={<AddHotelPage hotels={hotels} onAdd={handleAdd} allFacilities={facilities} />} />
+        <Route path="/view-statistics" element={<StatisticsPage hotelsList={hotels} />} />
       </Routes>
     </Router>
   );
