@@ -4,9 +4,7 @@ import PropTypes from "prop-types";
 import Hotel from "../../types/Hotel";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDropzone } from 'react-dropzone';
-import CustomButton from "../../components/CustomButton";
 import './styles.css';
-import Repository from "../../repository/repository";
 import { useEffect } from "react";
 
 
