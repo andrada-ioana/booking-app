@@ -1,7 +1,7 @@
 import React from "react";
 import './styles.css';
 import PropTypes from "prop-types";
-import { useState } from "react";
+import { IoBedOutline } from "react-icons/io5";
 
 const FilterCard = ({label, icon, options, selectedOptions = [], onSelect}) => {
     const handleChange = (event) => {
@@ -17,10 +17,14 @@ const FilterCard = ({label, icon, options, selectedOptions = [], onSelect}) => {
         onSelect && onSelect(updatedOptions);
     };
 
+    const iconMap = {
+        IoBedOutline: <IoBedOutline size="24px" />,
+    };
+
     return (
         <div className="filter-card">
             <div className="filter-label">
-                {icon}
+                {iconMap[icon] || icon}
                 <text className="filter-label">{label}</text>
             </div>
             {options.map((option) => (

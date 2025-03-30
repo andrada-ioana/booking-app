@@ -75,7 +75,7 @@ const HotelDescriptionPage = ({hotels, onDelete}) => {
             <div className="slideshow-container">
                 <div className="slideshow">
                     <MdKeyboardArrowLeft onClick={handlePrevImage} className="prev" />
-                    <img src={hotel.images[currentImageIndex]} alt="hotel" className="slideshow-image" onError={(e) => (e.target.src = noImageAvailable)} />
+                    <img src={hotel.images[currentImageIndex] || noImageAvailable } alt="hotel" className="slideshow-image" onError={(e) => (e.target.src = noImageAvailable)} />
                     <MdKeyboardArrowRight onClick={handleNextImage} className="next" />
                 </div>
                 <div className="dots-container">

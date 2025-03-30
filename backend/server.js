@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const { generateRandomHotels } = require('./utils/generateHotels');
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,15 @@ const facilitiesFilePath = path.join(__dirname, 'MockData', 'facilities.json');
 let hotels = JSON.parse(fs.readFileSync(hotelsFilePath, 'utf8'));
 let filters = JSON.parse(fs.readFileSync(filtersFilePath, 'utf8'));
 let facilities = JSON.parse(fs.readFileSync(facilitiesFilePath, 'utf8'));
+
+app.post('/api/hotels/generate/:count', (req, res) => {
+    const count = parseInt(req.params.count, 10) || 5;
+    const newHotels = generateRandomHotels(count);
+    hotels.push(...newHotels);
+    console.log(`🆕 Added ${count} hotels. Total now: ${hotels.length}`);
+
+    res.status(201).json(newHotels);
+});
 
 app.get('/api/hotels', (req, res) => {
     res.json(hotels);

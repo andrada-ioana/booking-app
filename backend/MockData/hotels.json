@@ -27,7 +27,7 @@
     "location": "Cluj-Napoca",
     "location_maps": "https://www.google.com/maps/place/Hotel+Beyfin/@46.7690577,23.5862759,17z/data=!3m1!4b1!4m9!3m8!1s0x47490dca8d6e3fb3:0xc5070934d476fab6!5m2!4m1!1i2!8m2!3d46.7520955!4d23.6060333",
     "cover_image": "",
-    "images": ["https://example.com/image5.jpg", "https://example.com/image6.jpg"],
+    "images": ["", ""],
     "description": "A premium hotel in Cluj-Napoca.",
     "facilities": ["Free Breakfast", "Airport Shuttle", "Pet Friendly"],
     "price_per_night": 400

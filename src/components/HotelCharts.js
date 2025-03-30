@@ -1,26 +1,12 @@
-import React, { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from "recharts";
-import { generateRandomHotels } from "../repository/repository";
 
 const COLORS = ["#FFBB28", "#FF8042", "#00C49F", "#0088FE", "#A28DFF"];
 
 const HotelCharts = ({ hotelsList, styles }) => {
-    const [hotelData, setHotelData] = useState(hotelsList);
-    
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setHotelData((prevHotels) => {
-                const newHotels = generateRandomHotels(10); 
-                return [...prevHotels, ...newHotels];
-            });
-        }, 5000);
-
-        return () => clearInterval(interval); 
-    }, []);
 
     const starsData = [1, 2, 3, 4, 5].map(stars => ({
         stars,
-        count: hotelData.filter(h => h.number_of_stars === stars).length
+        count: hotelsList.filter(h => h.number_of_stars === stars).length
     }));
 
     const priceRanges = [
@@ -33,10 +19,10 @@ const HotelCharts = ({ hotelsList, styles }) => {
 
     const priceData = priceRanges.map(({ range, min, max }) => ({
         range,
-        count: hotelData.filter(h => h.price_per_night >= min && h.price_per_night <= max).length
+        count: hotelsList.filter(h => h.price_per_night >= min && h.price_per_night <= max).length
     }));
 
-    const priceTrendData = hotelData.slice(-10).map((h, index) => ({
+    const priceTrendData = hotelsList.slice(-10).map((h, index) => ({
         name: h.name,
         price: h.price_per_night
     }));
