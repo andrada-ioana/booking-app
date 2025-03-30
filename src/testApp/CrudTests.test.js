@@ -13,15 +13,15 @@ describe('Repository CRUD Operations', () => {
         
         repository.addHotel(hotel);
         
-        expect(repository.getHotelsList().length).toBe(4); // 3 exist, adding 1 more
-        expect(repository.getHotelsList()[3].name).toBe("Hotel1");
+        expect(repository.getHotelsList().length).toBe(54); // 3 exist, adding 1 more
+        expect(repository.getHotelsList()[53].name).toBe("Hotel1");
     });
 
     
     it('should retrieve hotels from repository', () => {
         const hotels = repository.getHotelsList();
         
-        expect(hotels.length).toBe(3); // Repository starts with 3 hotels
+        expect(hotels.length).toBe(53); // Repository starts with 3 hotels
         expect(hotels[0].name).toBe("Grand Hotel Italia");
         expect(hotels[1].name).toBe("Hotel Platinia");
     });
@@ -39,7 +39,7 @@ describe('Repository CRUD Operations', () => {
     it('should delete a hotel', () => {
         repository.deleteHotel("Hotel Platinia");
 
-        expect(repository.getHotelsList().length).toBe(2);
+        expect(repository.getHotelsList().length).toBe(52);
         expect(repository.getHotelsList().some(h => h.name === "Hotel Platinia")).toBe(false);
     });
 
@@ -54,11 +54,11 @@ describe('Repository CRUD Operations', () => {
         const hotel = new Hotel("Hotel1", 5, "Cluj-Napoca", "url", "image.jpg", ["image.jpg"], "Luxury Hotel", ["Free WiFi"], 250);
         repository.addHotel(hotel);
 
-        expect(repository.getHotelsList().length).toBe(4);
+        expect(repository.getHotelsList().length).toBe(54);
 
         repository.deleteHotel("Hotel1");
 
-        expect(repository.getHotelsList().length).toBe(3);
+        expect(repository.getHotelsList().length).toBe(53);
 
         const updatedHotel = new Hotel("Grand Hotel Italia", 3, "New Location", "url", "new-image.jpg", ["new-image.jpg"], "Updated Description", ["Gym"], 200);
         repository.updateHotel(repository.getHotelsList()[0], updatedHotel);

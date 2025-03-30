@@ -143,3 +143,12 @@
     font-size: 18px;
     font-weight: bold;
 }
+
+.items-per-page {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    margin-right: 20%;
+    margin-top: 30px;
+}

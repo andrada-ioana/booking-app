@@ -10,8 +10,8 @@ const HotelCharts = ({ hotelsList, styles }) => {
     useEffect(() => {
         const interval = setInterval(() => {
             setHotelData((prevHotels) => {
-                const newHotels = generateRandomHotels(2); 
-                return [...prevHotels, ...newHotels].slice(-50);
+                const newHotels = generateRandomHotels(10); 
+                return [...prevHotels, ...newHotels];
             });
         }, 5000);
 
@@ -37,7 +37,7 @@ const HotelCharts = ({ hotelsList, styles }) => {
     }));
 
     const priceTrendData = hotelData.slice(-10).map((h, index) => ({
-        name: `Hotel ${index + 1}`,
+        name: h.name,
         price: h.price_per_night
     }));
 

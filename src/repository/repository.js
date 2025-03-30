@@ -7,7 +7,7 @@ const generateRandomHotel = (index) => {
     const images = [""];
 
     return new Hotel(
-        `Hotel ${index}`,
+        `Hotel ${Date.now()}-${index}`,
         Math.floor(Math.random() * 5) + 1, 
         locations[Math.floor(Math.random() * locations.length)], 
         "https://example.com/maps", 

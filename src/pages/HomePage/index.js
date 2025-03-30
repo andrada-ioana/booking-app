@@ -13,8 +13,6 @@ import MessageModal from '../../components/MessageModal';
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
-import PaginatedList from '../../components/PaginatedList';
-import HotelCharts from '../../components/HotelCharts';
 
 const HomePage = ({filtersList, hotelsList}) => {
     const location = useLocation();
@@ -28,7 +26,7 @@ const HomePage = ({filtersList, hotelsList}) => {
     const [sortOrder, setSortOrder] = useState('asc');
 
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const [itemsPerPage, setItemsPerPage] = useState(5); 
 
     useEffect(() => {
         if (location.state?.message) {
@@ -140,6 +138,17 @@ const HomePage = ({filtersList, hotelsList}) => {
             <div className='sort-hotels'>
                 <CustomButton label="Sort by number of stars" className="sort-button" onClick={sortHotelsByStars} />
             </div>
+
+            <div className="items-per-page">
+                <label>Hotels per page: </label>
+                <select value={itemsPerPage} onChange={(e) => setItemsPerPage(parseInt(e.target.value, 10))}>
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={20}>20</option>
+                </select>
+            </div>
+
             <div className='legend'>
                 <div><u>Legend</u></div> 
                 <div style={{color: "#CD7F32"}}>Bronze - cheap</div>
