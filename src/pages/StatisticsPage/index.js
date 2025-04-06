@@ -1,21 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from '../../components/Header';
-import PropTypes from 'prop-types';
 import HotelCharts from '../../components/HotelCharts';
 import './styles.css';
+import { useSocket } from '../../hooks/useSocket';
 
-const StatisticsPage = ({hotelsList}) => {
+const StatisticsPage = ({ hotelsList }) => {
+  const [hotels, setHotels] = useState(hotelsList || []);
 
-    return (
-        <div>
-            <Header />
-            <HotelCharts hotelsList={hotelsList} styles="body-position" />
-        </div>
-    );
-}
+  // Handle real-time updates via socket
+  useSocket((newHotel) => {
+    setHotels((prevHotels) => [...prevHotels, newHotel]);
+  });
 
-StatisticsPage.propTypes = {
-    hotelsList: PropTypes.arrayOf(PropTypes.instanceOf(Object)).isRequired
+  useEffect(() => {
+    setHotels(hotelsList); // Ensure hotels are initialized if passed from props
+  }, [hotelsList]);
+
+  return (
+    <div>
+      <Header />
+      <HotelCharts hotelsList={hotels} styles="body-position" />
+    </div>
+  );
 };
 
 export default StatisticsPage;
