@@ -16,15 +16,19 @@ function App() {
   useEffect(() => {
     fetch('http://localhost:3001/api/hotels')
       .then(res => res.json())
-      .then(data => setHotels(data));
+      .then(data => setHotels(data))
+      .catch(err => console.error("API Error:", err));
 
     fetch('http://localhost:3001/api/filters')
       .then(res => res.json())
-      .then(data => setFilters(data));
+      .then(data => setFilters(data))
+      .catch(err => console.error("API Error:", err));
+      
 
     fetch('http://localhost:3001/api/facilities')
       .then(res => res.json())
-      .then(data => setFacilities(data));
+      .then(data => setFacilities(data))
+      .catch(err => console.error("API Error:", err));
 
       const interval = setInterval(() => {
         fetch('http://localhost:3001/api/hotels/generate/5', {

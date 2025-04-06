@@ -22,21 +22,21 @@ app.post('/api/hotels/generate/:count', (req, res) => {
     const count = parseInt(req.params.count, 10) || 5;
     const newHotels = generateRandomHotels(count);
     hotels.push(...newHotels);
-    console.log(`🆕 Added ${count} hotels. Total now: ${hotels.length}`);
+    console.log(`Added ${count} hotels. Total now: ${hotels.length}`);
 
     res.status(201).json(newHotels);
 });
 
 app.get('/api/hotels', (req, res) => {
-    res.json(hotels);
+    res.status(200).json(hotels);
 });
 
 app.get('/api/filters', (req, res) => {
-    res.json(filters);
+    res.status(200).json(filters);
 });
 
 app.get('/api/facilities', (req, res) => {
-    res.json(facilities);
+    res.status(200).json(facilities);
 });
 
 app.post('/api/hotels', (req, res) => {
@@ -99,6 +99,12 @@ app.get('/api/hotels/filter', (req, res) => {
 });
 
 
-app.listen(PORT, () => {
+let server = null;
+
+if (process.env.NODE_ENV !== 'test') {
+  server = app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
-});
+  });
+}
+
+module.exports = server || app;
