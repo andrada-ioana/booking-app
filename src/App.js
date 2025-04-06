@@ -7,11 +7,13 @@ import UpdatePage from './pages/UpdatePage';
 import { useState } from 'react';
 import AddHotelPage from './pages/AddHotelPage/index.js';
 import StatisticsPage from './pages/StatisticsPage/index.js';
+import { useOfflineSync } from './hooks/useOfflineSync.js';
 
 function App() {
   const [hotels, setHotels] = useState([]);
   const [filters, setFilters] = useState([]);
   const [facilities, setFacilities] = useState([]);
+  const { isOnline, isServerUp, queueOperation } = useOfflineSync();
 
   useEffect(() => {
     fetch('http://localhost:3001/api/hotels')
@@ -44,6 +46,11 @@ function App() {
   }, []);
 
   const handleAdd = async (newHotel) => {
+    if (!isOnline || !isServerUp) {
+      queueOperation("POST", newHotel);
+      return;
+    }
+
     const response = await fetch('http://localhost:3001/api/hotels', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -54,6 +61,10 @@ function App() {
   };
 
   const handleUpdate = async (updatedHotel) => {
+    if (!isOnline || !isServerUp) {
+      queueOperation("PUT", updatedHotel, `/${updatedHotel.name}`);
+      return;
+    }
     await fetch(`http://localhost:3001/api/hotels/${updatedHotel.name}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -65,6 +76,10 @@ function App() {
   };
 
   const handleDelete = async (hotelName) => {
+    if (!isOnline || !isServerUp) {
+      queueOperation("DELETE", {}, `/${hotelName}`);
+      return;
+    }
     await fetch(`http://localhost:3001/api/hotels/${hotelName}`, {
       method: 'DELETE',
     });
@@ -73,6 +88,8 @@ function App() {
 
   return (
     <Router>
+      {!isOnline && <div className="network-alert">You're offline!</div>}
+      {isOnline && !isServerUp && <div className="network-alert">Server is down!</div>}
       <Routes>
         <Route
           path="/"
