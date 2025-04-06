@@ -135,6 +135,9 @@ const HomePage = ({filtersList, hotelsList}) => {
             <Link to='/view-statistics' className='view-statistics' >
                 <CustomButton label="View statistics" className="view-statistics-button" />
             </Link>
+            <Link to='/scroll-hotels' className='scroll-hotels-link'>
+                <CustomButton label="Scroll Hotels (Infinite)" className="scroll-hotels-button" />
+            </Link>
             <div className='sort-hotels'>
                 <CustomButton label="Sort by number of stars" className="sort-button" onClick={sortHotelsByStars} />
             </div>

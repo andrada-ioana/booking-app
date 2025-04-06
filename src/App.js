@@ -8,6 +8,7 @@ import { useState } from 'react';
 import AddHotelPage from './pages/AddHotelPage/index.js';
 import StatisticsPage from './pages/StatisticsPage/index.js';
 import { useOfflineSync } from './hooks/useOfflineSync.js';
+import ScrollHotelsPage from './pages/ScrollHotelsPage'
 
 function App() {
   const [hotels, setHotels] = useState([]);
@@ -110,6 +111,10 @@ function App() {
         <Route
           path="/view-statistics"
           element={<StatisticsPage hotelsList={hotels} />}
+        />
+        <Route
+          path="/scroll-hotels"
+          element={<ScrollHotelsPage />}
         />
       </Routes>
     </Router>
