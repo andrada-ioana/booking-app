@@ -33,17 +33,17 @@ function App() {
       .then(data => setFacilities(data))
       .catch(err => console.error("API Error:", err));
 
-      const interval = setInterval(() => {
-        fetch(`${process.env.REACT_APP_API_URL}/api/hotels/generate/5`, {
-          method: 'POST',
-        })
-          .then(() => fetch(`${process.env.REACT_APP_API_URL}/api/hotels`))
-          .then(res => res.json())
-          .then(data => setHotels(data))
-          .catch(err => console.error("Error generating hotels:", err));
-      }, 5000);
+      // const interval = setInterval(() => {
+      //   fetch(`${process.env.REACT_APP_API_URL}/api/hotels/generate/5`, {
+      //     method: 'POST',
+      //   })
+      //     .then(() => fetch(`${process.env.REACT_APP_API_URL}/api/hotels`))
+      //     .then(res => res.json())
+      //     .then(data => setHotels(data))
+      //     .catch(err => console.error("Error generating hotels:", err));
+      // }, 5000);
 
-    return () => clearInterval(interval); 
+    // return () => clearInterval(interval); 
   }, []);
 
   const handleAdd = async (newHotel) => {
@@ -52,13 +52,40 @@ function App() {
       return;
     }
 
+    const { videoFile, ...hotelData } = newHotel;
+
     const response = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newHotel),
     });
-    const added = await response.json();
-    setHotels(prev => [...prev, added]);
+    if (!response.ok) {
+      console.error("Failed to add hotel");
+      return;
+    }
+    const addedHotel = await response.json();
+    if (videoFile) {
+      const videoForm = new FormData();
+      videoForm.append("video", videoFile);
+  
+      try {
+        const uploadResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${addedHotel.name}/video`, {
+          method: 'POST',
+          body: videoForm
+        });
+  
+        if (uploadResponse.ok) {
+          const { video_url } = await uploadResponse.json();
+          addedHotel.video_url = video_url;
+        } else {
+          console.warn("Video upload failed");
+        }
+      } catch (err) {
+        console.error("Video upload error:", err);
+      }
+    }
+  
+    setHotels(prev => [...prev, addedHotel]);
   };
 
   const handleUpdate = async (updatedHotel) => {
@@ -66,15 +93,56 @@ function App() {
       queueOperation("PUT", updatedHotel, `/${updatedHotel.name}`);
       return;
     }
-    await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${updatedHotel.name}`, {
+  
+    const { videoFile, video_url, video, ...hotelData } = updatedHotel;
+
+    if (!videoFile) {
+      hotelData.video = video;
+      hotelData.video_url = video_url;
+    } else {
+      hotelData.video = ""; // let backend overwrite after upload
+      hotelData.video_url = "";
+    }
+  
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${updatedHotel.name}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedHotel),
+      body: JSON.stringify(hotelData),
     });
+  
+    if (!res.ok) {
+      console.error("Failed to update hotel");
+      return;
+    }
+  
+    const savedHotel = await res.json();
+  
+    if (videoFile) {
+      const videoForm = new FormData();
+      videoForm.append("video", videoFile);
+  
+      try {
+        const videoRes = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${updatedHotel.name}/video`, {
+          method: 'POST',
+          body: videoForm,
+        });
+  
+        if (videoRes.ok) {
+          const { video_url } = await videoRes.json();
+          savedHotel.video_url = video_url;
+        } else {
+          console.warn("Video upload failed");
+        }
+      } catch (err) {
+        console.error("Video upload error:", err);
+      }
+    }
+  
     setHotels(prev =>
-      prev.map(h => (h.name === updatedHotel.name ? updatedHotel : h))
+      prev.map(h => (h.name === savedHotel.name ? savedHotel : h))
     );
   };
+  
 
   const handleDelete = async (hotelName) => {
     if (!isOnline || !isServerUp) {

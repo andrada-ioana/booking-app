@@ -89,7 +89,6 @@ const HotelDescriptionPage = ({hotels, onDelete}) => {
                 </div>
             </div>
 
-
             <div className="hotel-description">
                 <label className="description-label">Description</label>
                 {hotel.description}
@@ -103,6 +102,15 @@ const HotelDescriptionPage = ({hotels, onDelete}) => {
                     ))}
                 </ul>
             </div>
+
+            {hotel.video_url && (
+            <div className="hotel-video">
+                <video width="640" height="360" controls>
+                <source src={hotel.video_url} type="video/mp4" />
+                Your browser does not support the video tag.
+                </video>
+            </div>
+            )}
         </div>
     );
 };

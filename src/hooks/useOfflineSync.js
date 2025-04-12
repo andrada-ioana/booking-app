@@ -46,7 +46,7 @@ export function useOfflineSync() {
             fetchOptions.body = JSON.stringify(op.data);
           }
       
-          await fetch(`http://localhost:3001/api/hotels${op.url || ""}`, fetchOptions);
+          await fetch(`${process.env.REACT_APP_API_URL}/api/hotels${op.url || ""}`, fetchOptions);
         } catch (err) {
           console.error("Failed to replay operation", op);
         }

@@ -13,6 +13,7 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
     const navigate = useNavigate();
     const { name } = useParams();
     const hotel = hotels.find((hotel) => hotel.name === name);
+    const [videoMarkedForDeletion, setVideoMarkedForDeletion] = useState(false);
 
     const [formData, setFormData] = useState({
         fname: '',
@@ -23,7 +24,10 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
         description: '',
         facilities: '',
         cover_image: '',
-        images: []
+        images: [],
+        video_url: '',
+        video: '',
+        videoFile: null
     });
 
     useEffect(() => {
@@ -37,7 +41,10 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
                 description: hotel.description,
                 facilities: hotel.facilities,
                 cover_image: hotel.cover_image,
-                images: Array.isArray(hotel.images) ? hotel.images : [] // Ensure images is an array
+                images: Array.isArray(hotel.images) ? hotel.images : [], // Ensure images is an array
+                video_url: hotel.video_url || '',
+                video: hotel.video || '',
+                videoFile: null
             });
         }
     }, [hotel]);
@@ -80,8 +87,29 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleDeleteVideo = () => {
+        setFormData((prev) => ({
+          ...prev,
+          video_url: '',
+          videoFile: null
+        }));
+        setVideoMarkedForDeletion(true);
+    };
+      
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (videoMarkedForDeletion && hotel.video_url && !formData.videoFile) {
+            try {
+              await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${hotel.name}/video`, {
+                method: 'DELETE',
+              });
+            } catch (err) {
+              console.error("Failed to delete video on server:", err);
+            }
+        }
+
         const updatedHotel = new Hotel(
             formData.fname,
             formData.nrstars,
@@ -91,9 +119,12 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
             formData.images,
             formData.description,
             formData.facilities,
-            formData.price_per_night
+            formData.price_per_night,
+            "",
+            formData.videoFile ? "" : formData.video_url
         );
-        onUpdate(updatedHotel);
+        updatedHotel.videoFile = formData.videoFile;
+        await onUpdate(updatedHotel);
         navigate(`/hotel/${formData.fname}`);
     };
 
@@ -107,6 +138,21 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
         onDrop: handleDropImages,
         accept: 'image/*'
     });
+
+    const { getRootProps: getRootPropsVideo, getInputProps: getInputPropsVideo } = useDropzone({
+        onDrop: (acceptedFiles) => {
+          if (acceptedFiles.length > 0) {
+            setFormData((prev) => ({ ...prev, videoFile: acceptedFiles[0] }));
+          }
+        },
+        accept: {
+          'video/mp4': ['.mp4'],
+          'video/webm': ['.webm'],
+          'video/ogg': ['.ogv']
+        },
+        multiple: false
+    });
+      
 
     if (!hotel) {
         return <div>Hotel not found</div>;
@@ -192,6 +238,44 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
                         ))}
                     </div>
                 </div>
+
+                <div>
+                    <label className="label">Video:</label>
+                    <div {...getRootPropsVideo({ className: "dropzone" })}>
+                        <input {...getInputPropsVideo()} />
+                        <p>Drag & drop a video or click to select</p>
+                    </div>
+
+                    {formData.videoFile && (
+                        <div className="video-preview">
+                        <p>Selected video: {formData.videoFile.name}</p>
+                        <video width="320" height="240" controls>
+                            <source src={URL.createObjectURL(formData.videoFile)} type="video/mp4" />
+                        </video>
+                        <div style={{ marginTop: 10 }}>
+                            <button type="button" className="image-button" onClick={handleDeleteVideo}>
+                            Delete Video
+                            </button>
+                        </div>
+                        </div>
+                    )}
+
+                    {!formData.videoFile && formData.video_url && (
+                        <div className="video-preview">
+                        <p>Current video:</p>
+                        <video width="320" height="240" controls>
+                            <source src={formData.video_url} type="video/mp4" />
+                        </video>
+                        <div style={{ marginTop: 10 }}>
+                            <button type="button" className="image-button" onClick={handleDeleteVideo}>
+                            Delete Video
+                            </button>
+                        </div>
+                        </div>
+                    )}
+                </div>
+
+
                 <input type="submit" value="Submit" className="submit-update" />
             </form>
         </div>

@@ -176,3 +176,16 @@
 .active, .dot:hover {
     background-color: #717171;
 }
+
+.hotel-video {
+    text-align: center;
+    margin: 30px 0;
+  }
+  
+  .video-label {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  

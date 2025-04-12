@@ -21,6 +21,7 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
         facilities: [],
         cover_image: "",
         images: [],
+        videoFile: null,
     });
 
     const [errors, setErrors] = useState({});
@@ -94,6 +95,12 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
         setFormData({ ...formData, images: formData.images.filter((_, i) => i !== index) });
     };
 
+    const handleDropVideo = (acceptedFiles) => {
+        if (acceptedFiles.length > 0) {
+          setFormData({ ...formData, videoFile: acceptedFiles[0] });
+        }
+    };
+      
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!validateForm()) return; 
@@ -108,8 +115,10 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
             formData.description,
             formData.facilities,
             parseInt(formData.price, 10),
+            "",
+            ""
         );
-
+        newHotel.videoFile = formData.videoFile;
         onAdd(newHotel);
 
         setModalMessage("Hotel successfully added!");
@@ -130,6 +139,16 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
     const { getRootProps: getRootPropsImages, getInputProps: getInputPropsImages } = useDropzone({
         onDrop: handleDropImages,
         accept: 'image/*'
+    });
+
+    const { getRootProps: getRootPropsVideo, getInputProps: getInputPropsVideo } = useDropzone({
+        onDrop: handleDropVideo,
+        accept: {
+          'video/mp4': ['.mp4'],
+          'video/webm': ['.webm'],
+          'video/ogg': ['.ogv']
+        },
+        multiple: false
     });
 
     return (
@@ -224,6 +243,34 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
                         ))}
                     </div>
                 </div>
+
+                <div>
+                    <label className="label">Video:</label>
+                    <div {...getRootPropsVideo({ className: "dropzone" })}>
+                        <input {...getInputPropsVideo()} />
+                        <p>Drag & drop a video or click to select</p>
+                    </div>
+                    {formData.videoFile && (
+                        <div className="video-preview">
+                            <p>Selected video: {formData.videoFile.name}</p>
+                            <video width="320" height="240" controls>
+                                <source src={URL.createObjectURL(formData.videoFile)} type="video/mp4" />
+                                Your browser does not support the video tag.
+                            </video>
+                            <div style={{ marginTop: 10 }}>
+                                <button
+                                    type="button"
+                                    className="image-button"
+                                    onClick={() => setFormData({ ...formData, videoFile: null })}
+                                >
+                                    Delete Video
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+
 
                 <input type="submit" value="Add Hotel" className="submit-add" />
             </form>

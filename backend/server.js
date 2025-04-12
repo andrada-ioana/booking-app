@@ -23,6 +23,18 @@ for (const name in interfaces) {
   }
 }
 
+const multer = require('multer');
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, 'uploads'),
+    filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+  }),
+  limits: {
+    fileSize: 1024 * 1024 * 500 // 500MB max file size
+  }
+});
+
+
 // WebSocket server will be created only if not in test mode
 let server = null;
 let io = null;
@@ -129,6 +141,41 @@ app.get('/api/hotels/filter', (req, res) => {
 
   res.json(filtered);
 });
+
+app.get('/download/:filename', (req, res) => {
+  const filePath = path.join(__dirname, 'uploads', req.params.filename);
+  res.download(filePath);
+});
+
+app.use('/videos', express.static(path.join(__dirname, 'uploads')));
+
+app.post('/api/hotels/:name/video', upload.single('video'), (req, res) => {
+  const hotelName = req.params.name;
+  const hotel = hotels.find(h => h.name === hotelName);
+  if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
+
+  hotel.video = req.file.filename;
+  hotel.video_url = `http://${localIP}:${PORT}/videos/${req.file.filename}`;
+  res.status(200).json({ message: 'Video uploaded', video_url: hotel.video_url });
+});
+
+app.delete('/api/hotels/:name/video', (req, res) => {
+  const hotel = hotels.find(h => h.name === req.params.name);
+  if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
+
+  if (hotel.video) {
+    const videoPath = path.join(__dirname, 'uploads', hotel.video);
+    if (fs.existsSync(videoPath)) {
+      fs.unlinkSync(videoPath); // delete file
+    }
+  }
+
+  hotel.video = '';
+  hotel.video_url = '';
+  res.status(200).json({ message: 'Video deleted' });
+});
+
+
 
 // Real-time: Only start server when not in test mode
 if (process.env.NODE_ENV !== 'test') {
