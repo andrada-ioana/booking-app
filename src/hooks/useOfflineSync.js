@@ -21,7 +21,7 @@ export function useOfflineSync() {
   // Detect server availability
   useEffect(() => {
     const checkServer = () => {
-      fetch("http://localhost:3001/api/hotels")
+      fetch(`${process.env.REACT_APP_API_URL}/api/hotels`)
         .then(res => setIsServerUp(res.ok))
         .catch(() => setIsServerUp(false));
     };

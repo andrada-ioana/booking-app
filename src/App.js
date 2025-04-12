@@ -17,27 +17,27 @@ function App() {
   const { isOnline, isServerUp, queueOperation } = useOfflineSync();
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/hotels')
+    fetch(`${process.env.REACT_APP_API_URL}/api/hotels`)
       .then(res => res.json())
       .then(data => setHotels(data))
       .catch(err => console.error("API Error:", err));
 
-    fetch('http://localhost:3001/api/filters')
+    fetch(`${process.env.REACT_APP_API_URL}/api/filters`)
       .then(res => res.json())
       .then(data => setFilters(data))
       .catch(err => console.error("API Error:", err));
       
 
-    fetch('http://localhost:3001/api/facilities')
+    fetch(`${process.env.REACT_APP_API_URL}/api/facilities`)
       .then(res => res.json())
       .then(data => setFacilities(data))
       .catch(err => console.error("API Error:", err));
 
       const interval = setInterval(() => {
-        fetch('http://localhost:3001/api/hotels/generate/5', {
+        fetch(`${process.env.REACT_APP_API_URL}/api/hotels/generate/5`, {
           method: 'POST',
         })
-          .then(() => fetch('http://localhost:3001/api/hotels'))
+          .then(() => fetch(`${process.env.REACT_APP_API_URL}/api/hotels`))
           .then(res => res.json())
           .then(data => setHotels(data))
           .catch(err => console.error("Error generating hotels:", err));
@@ -52,7 +52,7 @@ function App() {
       return;
     }
 
-    const response = await fetch('http://localhost:3001/api/hotels', {
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newHotel),
@@ -66,7 +66,7 @@ function App() {
       queueOperation("PUT", updatedHotel, `/${updatedHotel.name}`);
       return;
     }
-    await fetch(`http://localhost:3001/api/hotels/${updatedHotel.name}`, {
+    await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${updatedHotel.name}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedHotel),
@@ -81,7 +81,7 @@ function App() {
       queueOperation("DELETE", {}, `/${hotelName}`);
       return;
     }
-    await fetch(`http://localhost:3001/api/hotels/${hotelName}`, {
+    await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${hotelName}`, {
       method: 'DELETE',
     });
     setHotels(prev => prev.filter(h => h.name !== hotelName));

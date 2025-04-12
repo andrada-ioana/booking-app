@@ -5,12 +5,23 @@ const path = require('path');
 const { generateRandomHotels } = require('./utils/generateHotels');
 const http = require('http');
 const { Server } = require('socket.io');
-
+const PORT = 3001;
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = 3001;
+const os = require("os");
+const interfaces = os.networkInterfaces();
+
+let localIP = process.env.LOCAL_IP;
+for (const name in interfaces) {
+  for (const iface of interfaces[name]) {
+    if (iface.family === "IPv4" && !iface.internal) {
+      localIP = iface.address;
+      break;
+    }
+  }
+}
 
 // WebSocket server will be created only if not in test mode
 let server = null;
@@ -146,7 +157,7 @@ if (process.env.NODE_ENV !== 'test') {
   }, 5000);
 
   server.listen(PORT, () => {
-    console.log(`Server + WebSocket running at http://localhost:${PORT}`);
+    console.log(`Server + WebSocket running at http://${localIP}:${PORT}`);
   });
 }
 
