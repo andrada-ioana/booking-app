@@ -174,12 +174,6 @@ function App() {
       {!isOnline && <div className="network-alert">You're offline!</div>}
       {isOnline && !isServerUp && <div className="network-alert">Server is down!</div>}
       
-      <div style={{ padding: '1rem', background: '#f2f2f2', textAlign: 'center' }}>
-        <button onClick={toggleGeneration} style={{ padding: '10px 20px' }}>
-          {isGenerating ? 'Stop Generating Hotels' : 'Start Generating Hotels'}
-        </button>
-      </div>
-      
       <Routes>
         <Route
           path="/"

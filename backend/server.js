@@ -1,3 +1,7 @@
+const { Op } = require('sequelize');
+const { Hotel } = require('./models');
+const { Facility } = require('./models');
+const { Filter, FilterOption } = require('./models');
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -39,27 +43,27 @@ const upload = multer({
 let server = null;
 let io = null;
 
-const hotelsFilePath = path.join(__dirname, 'MockData', 'hotels.json');
-const filtersFilePath = path.join(__dirname, 'MockData', 'filters.json');
-const facilitiesFilePath = path.join(__dirname, 'MockData', 'facilities.json');
-
-let hotels = JSON.parse(fs.readFileSync(hotelsFilePath, 'utf8'));
-let filters = JSON.parse(fs.readFileSync(filtersFilePath, 'utf8'));
-let facilities = JSON.parse(fs.readFileSync(facilitiesFilePath, 'utf8'));
 let generationInterval = null;
 
-app.post('/api/generation/start', (req, res) => {
+app.post('/api/generation/start', async (req, res) => {
   if (!generationInterval) {
-    generationInterval = setInterval(() => {
+    generationInterval = setInterval(async () => {
       const newHotels = generateRandomHotels(1);
-      hotels.push(...newHotels);
-      console.log('Generated new hotel:', newHotels[0]?.name);
-      if (io) io.emit('newHotel', newHotels[0]);
+      for (const hotel of newHotels) {
+        try {
+          const createdHotel = await Hotel.create(hotel);
+          console.log('Generated new hotel:', createdHotel.name);
+          if (io) io.emit('newHotel', createdHotel);
+        } catch (err) {
+          console.error('Error creating hotel:', err);
+        }
+      }
     }, 5000);
     return res.status(200).json({ message: "Hotel generation started." });
   }
   res.status(200).json({ message: "Already generating." });
 });
+
 
 app.post('/api/generation/stop', (req, res) => {
   if (generationInterval) {
@@ -70,99 +74,145 @@ app.post('/api/generation/stop', (req, res) => {
   res.status(200).json({ message: "Generation was not running." });
 });
 
-app.post('/api/hotels/generate/:count', (req, res) => {
+app.post('/api/hotels/generate/:count', async (req, res) => {
   const count = parseInt(req.params.count, 10) || 5;
   const newHotels = generateRandomHotels(count);
-  hotels.push(...newHotels);
-  console.log(`Added ${count} hotels. Total now: ${hotels.length}`);
+  const createdHotels = [];
 
-  // Emit new hotels to WebSocket clients
-  if (io) {
-    newHotels.forEach(hotel => io.emit('newHotel', hotel));
+  for (const hotel of newHotels) {
+    try {
+      const createdHotel = await Hotel.create(hotel);
+      createdHotels.push(createdHotel);
+      if (io) io.emit('newHotel', createdHotel);
+    } catch (err) {
+      console.error('Error creating hotel:', err);
+    }
   }
 
-  res.status(201).json(newHotels);
+  console.log(`Added ${createdHotels.length} hotels.`);
+  res.status(201).json(createdHotels);
 });
 
-app.get('/api/hotels', (req, res) => {
-  res.status(200).json(hotels);
+
+app.get('/api/hotels', async (req, res) => {
+  try {
+    const hotels = await Hotel.findAll();
+    res.status(200).json(hotels);
+  } catch (err) {
+    console.error('Error fetching hotels:', err);
+    res.status(500).json({ error: 'Failed to fetch hotels' });
+  }
 });
 
-app.get('/api/filters', (req, res) => {
-  res.status(200).json(filters);
+app.get('/api/filters', async (req, res) => {
+  try {
+    const filters = await Filter.findAll({
+      include: [{ model: FilterOption, as: 'FilterOptions' }]
+    });
+    
+
+    const formatted = filters.map(f => ({
+      label: f.label,
+      icon: f.icon,
+      options: f.FilterOptions.map(opt => opt.value)
+    }));
+
+    res.status(200).json(formatted);
+  } catch (err) {
+    console.error('Error fetching filters:', err);
+    res.status(500).json({ error: 'Failed to fetch filters' });
+  }
 });
 
-app.get('/api/facilities', (req, res) => {
-  res.status(200).json(facilities);
+
+app.get('/api/facilities', async (req, res) => {
+  try {
+    const facilities = await Facility.findAll();
+    res.status(200).json(facilities);
+  } catch (err) {
+    console.error('Error fetching facilities:', err);
+    res.status(500).json({ error: 'Failed to fetch facilities' });
+  }
 });
 
-app.post('/api/hotels', (req, res) => {
-  const hotel = req.body;
-  if (!hotel.name || !hotel.location || !hotel.price_per_night) {
-    return res.status(400).json({ error: 'Missing required fields.' });
+app.post('/api/hotels', async (req, res) => {
+  try {
+    const hotel = await Hotel.create(req.body);
+    if (!hotel.name || !hotel.location || !hotel.price_per_night) {
+      return res.status(400).json({ error: 'Missing required fields.' });
+    }
+    res.status(201).json(hotel);
+  } catch (err) {
+    console.error('Error creating hotel:', err);
+    res.status(500).json({ error: 'Failed to create hotel' });
   }
-
-  hotels.push(hotel);
-
-  if (io) io.emit('newHotel', hotel); // Send new hotel via socket
-
-  res.status(201).json(hotel);
 });
 
-app.put('/api/hotels/:name', (req, res) => {
-  const name = req.params.name;
-  const updatedHotel = req.body;
+app.put('/api/hotels/:name', async(req, res) => {
+  try {
+    const hotel = await Hotel.findOne({ where: { name: req.params.name } });
+    if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
 
-  if (!updatedHotel.name || !updatedHotel.location || !updatedHotel.price_per_night) {
-    return res.status(400).json({ error: 'Missing required fields.' });
-  }
-  if (updatedHotel.stars && (updatedHotel.stars < 0 || updatedHotel.stars > 5)) {
-    return res.status(400).json({ error: 'Stars must be between 0 and 5.' });
-  }
-  if (typeof updatedHotel.price_per_night !== 'number') {
-    return res.status(400).json({ error: 'Price per night must be a number.' });
-  }
-  if (updatedHotel.price_per_night < 0) {
-    return res.status(400).json({ error: 'Price per night cannot be negative.' });
-  }
+    const updatedHotel = req.body;
 
-  const index = hotels.findIndex(h => h.name === name);
-  if (index === -1) {
-    return res.status(404).json({ error: 'Hotel not found.' });
-  }
+    if (!updatedHotel.name || !updatedHotel.location || !updatedHotel.price_per_night) {
+      return res.status(400).json({ error: 'Missing required fields.' });
+    }
+    if (updatedHotel.stars && (updatedHotel.stars < 0 || updatedHotel.stars > 5)) {
+      return res.status(400).json({ error: 'Stars must be between 0 and 5.' });
+    }
+    if (typeof updatedHotel.price_per_night !== 'number') {
+      return res.status(400).json({ error: 'Price per night must be a number.' });
+    }
+    if (updatedHotel.price_per_night < 0) {
+      return res.status(400).json({ error: 'Price per night cannot be negative.' });
+    }
 
-  hotels[index] = updatedHotel;
-  res.json(updatedHotel);
+    await hotel.update(updatedHotel);
+    res.json(hotel);
+  } catch (err) {
+    console.error('Error updating hotel:', err);
+    res.status(500).json({ error: 'Failed to update hotel' });
+  }
 });
 
-app.delete('/api/hotels/:name', (req, res) => {
-  const name = req.params.name;
-  const originalLength = hotels.length;
-  hotels = hotels.filter(h => h.name !== name);
-
-  if (hotels.length === originalLength) {
-    return res.status(404).json({ error: 'Hotel not found.' });
+app.delete('/api/hotels/:name', async (req, res) => {
+  try {
+    const result = await Hotel.destroy({ where: { name: req.params.name } });
+    if (result === 0) return res.status(404).json({ error: 'Hotel not found' });
+    res.sendStatus(204);
+  } catch (err) {
+    console.error('Error deleting hotel:', err);
+    res.status(500).json({ error: 'Failed to delete hotel' });
   }
-
-  res.status(204).send();
 });
 
-app.get('/api/hotels/filter', (req, res) => {
+app.get('/api/hotels/filter', async (req, res) => {
   const { stars, sort } = req.query;
-  let filtered = hotels;
 
+  const whereClause = {};
   if (stars) {
     const starsArray = stars.split(',').map(Number);
-    filtered = filtered.filter(h => starsArray.includes(h.number_of_stars));
+    whereClause.number_of_stars = { [Op.in]: starsArray };
   }
 
+  const orderClause = [];
   if (sort === 'asc') {
-    filtered.sort((a, b) => a.price_per_night - b.price_per_night);
+    orderClause.push(['price_per_night', 'ASC']);
   } else if (sort === 'desc') {
-    filtered.sort((a, b) => b.price_per_night - a.price_per_night);
+    orderClause.push(['price_per_night', 'DESC']);
   }
 
-  res.json(filtered);
+  try {
+    const hotels = await Hotel.findAll({
+      where: whereClause,
+      order: orderClause
+    });
+    res.json(hotels);
+  } catch (err) {
+    console.error('Error filtering hotels:', err);
+    res.status(500).json({ error: 'Failed to filter hotels' });
+  }
 });
 
 app.get('/download/:filename', (req, res) => {
@@ -172,30 +222,44 @@ app.get('/download/:filename', (req, res) => {
 
 app.use('/videos', express.static(path.join(__dirname, 'uploads')));
 
-app.post('/api/hotels/:name/video', upload.single('video'), (req, res) => {
+app.post('/api/hotels/:name/video', upload.single('video'), async (req, res) => {
   const hotelName = req.params.name;
-  const hotel = hotels.find(h => h.name === hotelName);
+  const hotel = await Hotel.findOne({ where: { name: hotelName } });
   if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
 
-  hotel.video = req.file.filename;
-  hotel.video_url = `http://${localIP}:${PORT}/videos/${req.file.filename}`;
-  res.status(200).json({ message: 'Video uploaded', video_url: hotel.video_url });
+  try {
+    hotel.video = req.file.filename;
+    hotel.video_url = `http://${localIP}:${PORT}/videos/${req.file.filename}`;
+    await hotel.save(); // ← Save the changes
+
+    res.status(200).json({ message: 'Video uploaded', video_url: hotel.video_url });
+  } catch (err) {
+    console.error('Error saving video info:', err);
+    res.status(500).json({ error: 'Failed to save video' });
+  }
 });
 
-app.delete('/api/hotels/:name/video', (req, res) => {
-  const hotel = hotels.find(h => h.name === req.params.name);
+app.delete('/api/hotels/:name/video', async (req, res) => {
+  const hotel = await Hotel.findOne({ where: { name: req.params.name } });
   if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
 
-  if (hotel.video) {
-    const videoPath = path.join(__dirname, 'uploads', hotel.video);
-    if (fs.existsSync(videoPath)) {
-      fs.unlinkSync(videoPath); // delete file
+  try {
+    if (hotel.video) {
+      const videoPath = path.join(__dirname, 'uploads', hotel.video);
+      if (fs.existsSync(videoPath)) {
+        fs.unlinkSync(videoPath);
+      }
     }
-  }
 
-  hotel.video = '';
-  hotel.video_url = '';
-  res.status(200).json({ message: 'Video deleted' });
+    hotel.video = '';
+    hotel.video_url = '';
+    await hotel.save(); // ← Save the cleared fields
+
+    res.status(200).json({ message: 'Video deleted' });
+  } catch (err) {
+    console.error('Error deleting video:', err);
+    res.status(500).json({ error: 'Failed to delete video' });
+  }
 });
 
 
@@ -211,20 +275,13 @@ if (process.env.NODE_ENV !== 'test') {
 
   io.on('connection', (socket) => {
     console.log('New client connected:', socket.id);
-    socket.emit('initHotels', hotels); // optional: send all on connect
-
+    Hotel.findAll().then(hotels => {
+      socket.emit('initHotels', hotels);
+    });
     socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id);
     });
   });
-
-  // Periodically generate hotels and emit via WebSocket
-  // setInterval(() => {
-  //   const newHotels = generateRandomHotels(1);
-  //   hotels.push(...newHotels);
-  //   console.log('Generated new hotel:', newHotels[0]?.name);
-  //   if (io) io.emit('newHotel', newHotels[0]);
-  // }, 5000);
 
   server.listen(PORT, () => {
     console.log(`Server + WebSocket running at http://${localIP}:${PORT}`);
