@@ -170,3 +170,19 @@
     background-color: white;
     font-weight: bold;
 }
+
+.generate-toggle {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-right: 20%;
+    margin-top: 30px;
+}
+
+.toggle-generation-button {
+    color: #8011FF;
+    border: none;
+    background-color: white;
+    font-weight: bold;
+    border-bottom: solid #8011FF;
+}

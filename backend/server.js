@@ -46,6 +46,29 @@ const facilitiesFilePath = path.join(__dirname, 'MockData', 'facilities.json');
 let hotels = JSON.parse(fs.readFileSync(hotelsFilePath, 'utf8'));
 let filters = JSON.parse(fs.readFileSync(filtersFilePath, 'utf8'));
 let facilities = JSON.parse(fs.readFileSync(facilitiesFilePath, 'utf8'));
+let generationInterval = null;
+
+app.post('/api/generation/start', (req, res) => {
+  if (!generationInterval) {
+    generationInterval = setInterval(() => {
+      const newHotels = generateRandomHotels(1);
+      hotels.push(...newHotels);
+      console.log('Generated new hotel:', newHotels[0]?.name);
+      if (io) io.emit('newHotel', newHotels[0]);
+    }, 5000);
+    return res.status(200).json({ message: "Hotel generation started." });
+  }
+  res.status(200).json({ message: "Already generating." });
+});
+
+app.post('/api/generation/stop', (req, res) => {
+  if (generationInterval) {
+    clearInterval(generationInterval);
+    generationInterval = null;
+    return res.status(200).json({ message: "Hotel generation stopped." });
+  }
+  res.status(200).json({ message: "Generation was not running." });
+});
 
 app.post('/api/hotels/generate/:count', (req, res) => {
   const count = parseInt(req.params.count, 10) || 5;
@@ -196,12 +219,12 @@ if (process.env.NODE_ENV !== 'test') {
   });
 
   // Periodically generate hotels and emit via WebSocket
-  setInterval(() => {
-    const newHotels = generateRandomHotels(1);
-    hotels.push(...newHotels);
-    console.log('Generated new hotel:', newHotels[0]?.name);
-    if (io) io.emit('newHotel', newHotels[0]);
-  }, 5000);
+  // setInterval(() => {
+  //   const newHotels = generateRandomHotels(1);
+  //   hotels.push(...newHotels);
+  //   console.log('Generated new hotel:', newHotels[0]?.name);
+  //   if (io) io.emit('newHotel', newHotels[0]);
+  // }, 5000);
 
   server.listen(PORT, () => {
     console.log(`Server + WebSocket running at http://${localIP}:${PORT}`);

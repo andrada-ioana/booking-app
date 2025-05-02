@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 
-const HomePage = ({filtersList, hotelsList}) => {
+const HomePage = ({filtersList, hotelsList, isGenerating, toggleGeneration}) => {
     const location = useLocation();
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -141,6 +141,14 @@ const HomePage = ({filtersList, hotelsList}) => {
             <div className='sort-hotels'>
                 <CustomButton label="Sort by number of stars" className="sort-button" onClick={sortHotelsByStars} />
             </div>
+            <div className='generate-toggle'>
+                <CustomButton
+                    label={isGenerating ? "Stop Generating Hotels" : "Start Generating Hotels"}
+                    className="toggle-generation-button"
+                    onClick={toggleGeneration}
+                />
+            </div>
+
 
             <div className="items-per-page">
                 <label>Hotels per page: </label>
@@ -210,7 +218,9 @@ const HomePage = ({filtersList, hotelsList}) => {
 
 HomePage.propTypes = {
     filtersList: PropTypes.array.isRequired,
-    hotelsList: PropTypes.arrayOf(PropTypes.instanceOf(Object)).isRequired
+    hotelsList: PropTypes.arrayOf(PropTypes.instanceOf(Object)).isRequired,
+    isGenerating: PropTypes.bool.isRequired,
+    toggleGeneration: PropTypes.func.isRequired
 };
 
 export default HomePage

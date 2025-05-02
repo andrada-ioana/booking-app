@@ -22,7 +22,7 @@ useEffect(() => {
 useEffect(() => {
     const fetchHotels = async () => {
     try {
-        const res = await fetch('http://localhost:3001/api/hotels');
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels`);
         const data = await res.json();
 
         // Only update if something changed (basic length check or more advanced logic)

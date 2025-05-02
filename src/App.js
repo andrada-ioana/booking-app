@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './App.css';
 import HomePage from './pages/HomePage';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
@@ -14,6 +14,10 @@ function App() {
   const [hotels, setHotels] = useState([]);
   const [filters, setFilters] = useState([]);
   const [facilities, setFacilities] = useState([]);
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const generatorIntervalRef = useRef(null);
+
   const { isOnline, isServerUp, queueOperation } = useOfflineSync();
 
   useEffect(() => {
@@ -31,20 +35,30 @@ function App() {
     fetch(`${process.env.REACT_APP_API_URL}/api/facilities`)
       .then(res => res.json())
       .then(data => setFacilities(data))
-      .catch(err => console.error("API Error:", err));
-
-      // const interval = setInterval(() => {
-      //   fetch(`${process.env.REACT_APP_API_URL}/api/hotels/generate/5`, {
-      //     method: 'POST',
-      //   })
-      //     .then(() => fetch(`${process.env.REACT_APP_API_URL}/api/hotels`))
-      //     .then(res => res.json())
-      //     .then(data => setHotels(data))
-      //     .catch(err => console.error("Error generating hotels:", err));
-      // }, 5000);
-
-    // return () => clearInterval(interval); 
+      .catch(err => console.error("API Error:", err)); 
   }, []);
+
+  useEffect(() => {
+    if (isGenerating) {
+      generatorIntervalRef.current = setInterval(() => {
+        fetch(`${process.env.REACT_APP_API_URL}/api/hotels/generate/1`, {
+          method: 'POST',
+        })
+          .then(() => fetch(`${process.env.REACT_APP_API_URL}/api/hotels`))
+          .then(res => res.json())
+          .then(data => setHotels(data))
+          .catch(err => console.error("Error generating hotels:", err));
+      }, 5000);
+    } else {
+      clearInterval(generatorIntervalRef.current);
+    }
+
+    return () => clearInterval(generatorIntervalRef.current);
+  }, [isGenerating]);
+
+  const toggleGeneration = () => {
+    setIsGenerating(prev => !prev);
+  };
 
   const handleAdd = async (newHotel) => {
     if (!isOnline || !isServerUp) {
@@ -159,10 +173,17 @@ function App() {
     <Router>
       {!isOnline && <div className="network-alert">You're offline!</div>}
       {isOnline && !isServerUp && <div className="network-alert">Server is down!</div>}
+      
+      <div style={{ padding: '1rem', background: '#f2f2f2', textAlign: 'center' }}>
+        <button onClick={toggleGeneration} style={{ padding: '10px 20px' }}>
+          {isGenerating ? 'Stop Generating Hotels' : 'Start Generating Hotels'}
+        </button>
+      </div>
+      
       <Routes>
         <Route
           path="/"
-          element={<HomePage filtersList={filters} hotelsList={hotels} />}
+          element={<HomePage filtersList={filters} hotelsList={hotels} isGenerating={isGenerating} toggleGeneration={toggleGeneration}/>}
         />
         <Route
           path="/hotel/:name"
