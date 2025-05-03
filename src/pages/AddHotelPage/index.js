@@ -234,7 +234,10 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
                     <div className="images-preview">
                         {formData.images.map((image, index) => (
                             <div key={index} className="image-item">
-                                <p>{image}</p>
+                                <img
+                                src={typeof image === 'string' ? image : image.image_url}
+                                alt="hotel"
+                                />
                                 <div>
                                     <button type="button" className={"image-button"} onClick={() => window.open(image, '_blank')}>Open</button>
                                     <button type="button" className={"image-button"} onClick={() => handleDeleteImage(index)}>Delete</button>

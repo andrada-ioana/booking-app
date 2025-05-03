@@ -66,26 +66,69 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
         });
     };
 
-    const handleDropCoverImage = (acceptedFiles) => {
-        setFormData({
-            ...formData,
-            cover_image: URL.createObjectURL(acceptedFiles[0])
+    const handleDropCoverImage = async (acceptedFiles) => {
+        const file = acceptedFiles[0];
+        const form = new FormData();
+        form.append('cover', file);
+      
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/cover-image`, {
+          method: 'POST',
+          body: form
         });
+      
+        const data = await res.json();
+        if (!data.imageUrl) {
+          console.error('Invalid response:', data);
+          return;
+        }
+      
+        setFormData((prev) => ({ ...prev, cover_image: data.imageUrl }));
     };
-
-    const handleDropImages = (acceptedFiles) => {
-        setFormData({
-            ...formData,
-            images: [...formData.images, ...acceptedFiles.map(file => URL.createObjectURL(file))]
+      
+      
+    const handleDropImages = async (acceptedFiles) => {
+        const form = new FormData();
+        acceptedFiles.forEach(file => form.append('images', file));
+      
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/images`, {
+          method: 'POST',
+          body: form
         });
+      
+        const data = await res.json();
+        if (!Array.isArray(data.imageUrls)) {
+          console.error('Invalid response:', data);
+          return;
+        }
+      
+        setFormData((prev) => ({
+          ...prev,
+          images: [...prev.images, ...data.imageUrls]
+        }));
     };
-
-    const handleDeleteImage = (index) => {
-        setFormData({
-            ...formData,
-            images: formData.images.filter((_, i) => i !== index)
-        });
+      
+      
+    const handleDeleteImage = async (index) => {
+        const image = formData.images[index];
+      
+        try {
+          // Send DELETE request to backend (assumes image_url contains the filename)
+          const filename = image.image_url.split('/').pop(); // e.g., "1714643541532-photo.jpg"
+      
+          await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/images/${filename}`, {
+            method: 'DELETE',
+          });
+      
+          // Remove from state
+          setFormData((prev) => ({
+            ...prev,
+            images: prev.images.filter((_, i) => i !== index),
+          }));
+        } catch (error) {
+          console.error('Failed to delete image:', error);
+        }
     };
+      
 
     const handleDeleteVideo = () => {
         setFormData((prev) => ({
@@ -229,9 +272,9 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
                     <div className="images-preview">
                         {formData.images.map((image, index) => (
                             <div key={index} className="image-item">
-                                <p>{image}</p>
+                                <p>{image.image_url}</p>
                                 <div>
-                                    <button type="button" className={"image-button"} onClick={() => window.open(image, '_blank')}>Open</button>
+                                    <button type="button" className={"image-button"} onClick={() => window.open(image.image_url, '_blank')}>Open</button>
                                     <button type="button" className={"image-button"} onClick={() => handleDeleteImage(index)}>Delete</button>
                                 </div>
                             </div>

@@ -2,7 +2,11 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, LineChart, L
 
 const COLORS = ["#FFBB28", "#FF8042", "#00C49F", "#0088FE", "#A28DFF"];
 
-const HotelCharts = ({ hotelsList, styles }) => {
+const HotelCharts = ({ hotelsList = [], styles }) => {
+    if (!Array.isArray(hotelsList)) {
+        console.error("Invalid hotelsList passed to HotelCharts:", hotelsList);
+        return null;
+      }
 
     const starsData = [1, 2, 3, 4, 5].map(stars => ({
         stars,

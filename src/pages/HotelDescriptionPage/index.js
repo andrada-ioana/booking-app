@@ -29,12 +29,14 @@ const HotelDescriptionPage = ({hotels, onDelete}) => {
     }
 
     const handleNextImage = () => {
+        if (!hotel.images || hotel.images.length === 0) return;
         setCurrentImageIndex((prevIndex) => (prevIndex + 1) % hotel.images.length);
     };
-
+    
     const handlePrevImage = () => {
+        if (!hotel.images || hotel.images.length === 0) return;
         setCurrentImageIndex((prevIndex) => (prevIndex - 1 + hotel.images.length) % hotel.images.length);
-    };
+    };    
 
     const stars = [];
     for (let i = 0; i < hotel.number_of_stars; i++) {
@@ -75,11 +77,11 @@ const HotelDescriptionPage = ({hotels, onDelete}) => {
             <div className="slideshow-container">
                 <div className="slideshow">
                     <MdKeyboardArrowLeft onClick={handlePrevImage} className="prev" />
-                    <img src={hotel.images[currentImageIndex] || noImageAvailable } alt="hotel" className="slideshow-image" onError={(e) => (e.target.src = noImageAvailable)} />
+                    <img src={hotel.images?.[currentImageIndex]?.image_url || noImageAvailable } alt="hotel" className="slideshow-image" onError={(e) => (e.target.src = noImageAvailable)} />
                     <MdKeyboardArrowRight onClick={handleNextImage} className="next" />
                 </div>
                 <div className="dots-container">
-                    {hotel.images.map((_, index) => (
+                    {hotel.images?.length > 0 && hotel.images?.map((_, index) => (
                         <span
                             key={index}
                             className={`dot ${currentImageIndex === index ? "active" : ""}`}
@@ -97,7 +99,7 @@ const HotelDescriptionPage = ({hotels, onDelete}) => {
             <div className="hotel-facilities">
                 <label className="facilities-label">Facilities</label>
                 <ul>
-                    {hotel.facilities.map((facility, index) => (
+                    {hotel.facilities?.map((facility, index) => (
                         <li key={index} className="facilities-list"><SiTicktick className="facility-icon" /><label style={{marginLeft: 5}}>{facility}</label></li>
                     ))}
                 </ul>

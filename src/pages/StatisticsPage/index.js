@@ -4,7 +4,7 @@ import HotelCharts from '../../components/HotelCharts';
 import './styles.css';
 import { useSocket } from '../../hooks/useSocket';
 
-const StatisticsPage = ({ hotelsList }) => {
+const StatisticsPage = ({ hotelsList = [] }) => {
   const [hotels, setHotels] = useState(hotelsList || []);
 
   // Handle real-time updates via socket
@@ -13,8 +13,8 @@ const StatisticsPage = ({ hotelsList }) => {
   });
 
   useEffect(() => {
-    setHotels(hotelsList); // Ensure hotels are initialized if passed from props
-  }, [hotelsList]);
+    setHotels(Array.isArray(hotelsList) ? hotelsList : []);
+  }, [hotelsList]);  
 
   return (
     <div>

@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Hotel } = require('./models');
+const { Hotel, HotelImage } = require('./models');
 const { Facility } = require('./models');
 const { Filter, FilterOption } = require('./models');
 const express = require('express');
@@ -13,6 +13,7 @@ const PORT = 3001;
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const os = require("os");
 const interfaces = os.networkInterfaces();
@@ -96,7 +97,20 @@ app.post('/api/hotels/generate/:count', async (req, res) => {
 
 app.get('/api/hotels', async (req, res) => {
   try {
-    const hotels = await Hotel.findAll();
+    const hotels = await Hotel.findAll({
+      include: [{
+        model: Facility,
+        as: 'facilities',
+        through: { attributes: [] }, // hide join table fields
+      }],
+      include: [
+        {
+          model: HotelImage,
+          as: 'images',
+          attributes: ['image_url'],
+        }
+      ]
+    });
     res.status(200).json(hotels);
   } catch (err) {
     console.error('Error fetching hotels:', err);
@@ -219,6 +233,70 @@ app.get('/download/:filename', (req, res) => {
   const filePath = path.join(__dirname, 'uploads', req.params.filename);
   res.download(filePath);
 });
+
+app.post('/api/hotels/:name/cover-image', upload.single('cover'), async (req, res) => {
+  try {
+    const hotel = await Hotel.findOne({ where: { name: req.params.name } });
+    if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
+
+    const imageUrl = `http://${localIP}:${PORT}/uploads/${req.file.filename}`;
+    hotel.cover_image = imageUrl;
+    await hotel.save();
+
+    res.status(200).json({ message: 'Cover image uploaded', imageUrl });
+  } catch (err) {
+    console.error('Error saving cover image:', err);
+    res.status(500).json({ error: 'Failed to upload cover image' });
+  }
+});
+
+
+app.post('/api/hotels/:name/images', upload.array('images'), async (req, res) => {
+  const hotel = await Hotel.findOne({ where: { name: req.params.name } });
+  if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
+
+  try {
+    const imageUrls = req.files.map(file => {
+      const url = `http://${localIP}:${PORT}/uploads/${file.filename}`;
+      HotelImage.create({ image_url: url, HotelId: hotel.id }); // ← Set HotelId here!
+      return url;
+    });
+
+    res.status(200).json({ message: 'Images uploaded', imageUrls });
+  } catch (err) {
+    console.error('Error saving images:', err);
+    res.status(500).json({ error: 'Failed to upload images' });
+  }
+});
+
+app.delete('/api/hotels/:name/images/:filename', async (req, res) => {
+  const { name, filename } = req.params;
+  const hotel = await Hotel.findOne({ where: { name } });
+
+  if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
+
+  try {
+    // Delete from DB
+    await HotelImage.destroy({
+      where: {
+        hotelId: hotel.id,
+        image_url: { [Op.like]: `%${filename}` }, // assumes image_url ends with filename
+      },
+    });
+
+    // Optionally delete file from disk (if needed)
+    const filePath = path.join(__dirname, 'uploads', filename);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    res.status(200).json({ message: 'Image deleted' });
+  } catch (err) {
+    console.error('Error deleting image:', err);
+    res.status(500).json({ error: 'Failed to delete image' });
+  }
+});
+
 
 app.use('/videos', express.static(path.join(__dirname, 'uploads')));
 
