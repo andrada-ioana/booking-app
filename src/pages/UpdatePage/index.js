@@ -22,7 +22,7 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
         location_maps: '',
         price_per_night: 0,
         description: '',
-        facilities: '',
+        facilities: [],
         cover_image: '',
         images: [],
         video_url: '',
@@ -39,7 +39,9 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
                 location_maps: hotel.location_maps,
                 price_per_night: hotel.price_per_night,
                 description: hotel.description,
-                facilities: hotel.facilities,
+                facilities: Array.isArray(hotel.facilities)
+                ? hotel.facilities.map(f => f.name)
+                : [],
                 cover_image: hotel.cover_image,
                 images: Array.isArray(hotel.images) ? hotel.images : [], // Ensure images is an array
                 video_url: hotel.video_url || '',
@@ -57,11 +59,11 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
         });
     };
 
-    const handleCheckboxChange = (facility) => {
+    const handleCheckboxChange = (facilityName) => {
         setFormData((prevFormData) => {
-            const facilities = prevFormData.facilities.includes(facility)
-                ? prevFormData.facilities.filter((f) => f !== facility)
-                : [...prevFormData.facilities, facility];
+            const facilities = prevFormData.facilities.includes(facilityName)
+                ? prevFormData.facilities.filter((f) => f !== facilityName)
+                : [...prevFormData.facilities, facilityName];
             return { ...prevFormData, facilities };
         });
     };
@@ -233,16 +235,16 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
                     <label htmlFor="facilities" className="label">Facilities: </label>
                     <div className="facilities-list-update">
                         {allFacilities.map((facility) => (
-                            <div key={facility} className="facility-item">
+                            <div key={facility.id} className="facility-item">
                                 <input
                                     type="checkbox"
-                                    id={facility}
+                                    id={facility.name}
                                     name="facilities"
-                                    value={facility}
-                                    checked={formData.facilities.includes(facility)}
-                                    onChange={() => handleCheckboxChange(facility)}
+                                    value={facility.name}
+                                    checked={formData.facilities.includes(facility.name)}
+                                    onChange={() => handleCheckboxChange(facility.name)}
                                 />
-                                <label htmlFor={facility}>{facility}</label>
+                                <label htmlFor={facility.name}>{facility.name}</label>
                             </div>
                         ))}
                     </div>

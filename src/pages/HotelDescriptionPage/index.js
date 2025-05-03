@@ -100,7 +100,7 @@ const HotelDescriptionPage = ({hotels, onDelete}) => {
                 <label className="facilities-label">Facilities</label>
                 <ul>
                     {hotel.facilities?.map((facility, index) => (
-                        <li key={index} className="facilities-list"><SiTicktick className="facility-icon" /><label style={{marginLeft: 5}}>{facility}</label></li>
+                        <li key={index} className="facilities-list"><SiTicktick className="facility-icon" /><label style={{marginLeft: 5}}>{facility.name}</label></li>
                     ))}
                 </ul>
             </div>

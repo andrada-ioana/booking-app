@@ -102,14 +102,13 @@ app.get('/api/hotels', async (req, res) => {
         model: Facility,
         as: 'facilities',
         through: { attributes: [] }, // hide join table fields
-      }],
-      include: [
-        {
-          model: HotelImage,
-          as: 'images',
-          attributes: ['image_url'],
-        }
-      ]
+      },
+      {
+        model: HotelImage,
+        as: 'images',
+        attributes: ['image_url'],
+      }
+    ]
     });
     res.status(200).json(hotels);
   } catch (err) {
@@ -151,16 +150,49 @@ app.get('/api/facilities', async (req, res) => {
 
 app.post('/api/hotels', async (req, res) => {
   try {
-    const hotel = await Hotel.create(req.body);
-    if (!hotel.name || !hotel.location || !hotel.price_per_night) {
+    const { name, location, price_per_night, facilities = [], ...rest } = req.body;
+
+    if (!name || !location || !price_per_night) {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
-    res.status(201).json(hotel);
+
+    // Create the hotel first (without facilities)
+    const hotel = await Hotel.create({
+      name,
+      location,
+      price_per_night,
+      ...rest
+    });
+
+    // If facilities are provided, link them
+    console.log('Requested facilities:', facilities);
+    if (Array.isArray(facilities) && facilities.length > 0) {
+      console.log('Reached facilities block'); // ← ADD THIS
+    
+      const facilityInstances = await Facility.findAll({
+        where: { name: facilities }
+      });
+    
+      console.log('Requested facilities:', facilities);
+      console.log('Matched in DB:', facilityInstances.map(f => f.name));
+    
+      await hotel.setFacilities(facilityInstances);
+    }
+    
+
+    // Re-fetch with associations to return full hotel data
+    const fullHotel = await Hotel.findOne({
+      where: { id: hotel.id },
+      include: [{ model: Facility, as: 'facilities' }]
+    });
+
+    res.status(201).json(fullHotel);
   } catch (err) {
     console.error('Error creating hotel:', err);
     res.status(500).json({ error: 'Failed to create hotel' });
   }
 });
+
 
 app.put('/api/hotels/:name', async(req, res) => {
   try {
@@ -183,7 +215,23 @@ app.put('/api/hotels/:name', async(req, res) => {
     }
 
     await hotel.update(updatedHotel);
-    res.json(hotel);
+    if (Array.isArray(updatedHotel.facilities)) {
+      const facilities = await Facility.findAll({
+        where: {
+          name: updatedHotel.facilities
+        }
+      });
+
+      await hotel.setFacilities(facilities);
+    }
+
+    // Re-fetch with updated associations
+    const updatedData = await Hotel.findOne({
+      where: { id: hotel.id },
+      include: [{ model: Facility, as: 'facilities' }]
+    });
+
+    res.json(updatedData);
   } catch (err) {
     console.error('Error updating hotel:', err);
     res.status(500).json({ error: 'Failed to update hotel' });

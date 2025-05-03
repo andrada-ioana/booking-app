@@ -71,25 +71,26 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
         setFormData({ ...formData, [name]: value });
     };
 
-    const handleCheckboxChange = (facility) => {
+    const handleCheckboxChange = (facilityName) => {
         setFormData((prevFormData) => {
-            const facilities = prevFormData.facilities.includes(facility)
-                ? prevFormData.facilities.filter((f) => f !== facility)
-                : [...prevFormData.facilities, facility];
+            const facilities = prevFormData.facilities.includes(facilityName)
+                ? prevFormData.facilities.filter((f) => f !== facilityName)
+                : [...prevFormData.facilities, facilityName];
             return { ...prevFormData, facilities };
         });
     };
 
     const handleDropCoverImage = (acceptedFiles) => {
-        setFormData({ ...formData, cover_image: URL.createObjectURL(acceptedFiles[0]) });
+        setFormData({ ...formData, cover_image: acceptedFiles[0] });
     };
 
     const handleDropImages = (acceptedFiles) => {
-        setFormData({
-            ...formData,
-            images: [...formData.images, ...acceptedFiles.map(file => URL.createObjectURL(file))]
-        });
+        setFormData((prev) => ({
+            ...prev,
+            images: [...prev.images, ...acceptedFiles]
+        }));
     };
+    
 
     const handleDeleteImage = (index) => {
         setFormData({ ...formData, images: formData.images.filter((_, i) => i !== index) });
@@ -101,29 +102,66 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
         }
     };
       
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!validateForm()) return; 
-
-        const newHotel = new Hotel(
-            formData.fname,
-            parseInt(formData.nrstars, 10),
-            formData.location,
-            formData.location_maps,
-            formData.cover_image,
-            formData.images,
-            formData.description,
-            formData.facilities,
-            parseInt(formData.price, 10),
-            "",
-            ""
-        );
-        newHotel.videoFile = formData.videoFile;
-        onAdd(newHotel);
-
+        if (!validateForm()) return;
+    
+        const hotelPayload = {
+            name: formData.fname,
+            number_of_stars: parseInt(formData.nrstars),
+            location: formData.location,
+            location_maps: formData.location_maps,
+            price_per_night: parseInt(formData.price),
+            description: formData.description,
+            facilities: formData.facilities.map(f => f.trim())
+        };
+    
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(hotelPayload)
+        });
+    
+        const createdHotel = await res.json();
+        if (!res.ok) {
+            console.error("Failed to create hotel:", createdHotel);
+            return;
+        }
+    
+        if (formData.cover_image instanceof File) {
+            const form = new FormData();
+            form.append('cover', formData.cover_image);
+            await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/cover-image`, {
+                method: 'POST',
+                body: form
+            });
+        }
+    
+        const imageFiles = formData.images.filter(img => img instanceof File);
+        if (imageFiles.length > 0) {
+            const form = new FormData();
+            imageFiles.forEach(file => form.append('images', file));
+            await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/images`, {
+                method: 'POST',
+                body: form
+            });
+        }
+    
+        if (formData.videoFile) {
+            const form = new FormData();
+            form.append('video', formData.videoFile);
+            await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/video`, {
+                method: 'POST',
+                body: form
+            });
+        }
+    
         setModalMessage("Hotel successfully added!");
         setIsModalOpen(true);
     };
+    
 
     const closeModal = () => {
         setIsModalOpen(false);
@@ -195,15 +233,15 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
                     <label className="label">Facilities: </label>
                     <div className="facilities-list-add">
                         {allFacilities.map((facility) => (
-                            <div key={facility} className="facility-item">
+                            <div key={facility.id} className="facility-item">
                                 <input
                                     type="checkbox"
-                                    id={facility}
-                                    value={facility}
-                                    checked={formData.facilities.includes(facility)}
-                                    onChange={() => handleCheckboxChange(facility)}
+                                    id={facility.name}
+                                    value={facility.name}
+                                    checked={formData.facilities.includes(facility.name)}
+                                    onChange={() => handleCheckboxChange(facility.name)}
                                 />
-                                <label htmlFor={facility}>{facility}</label>
+                                <label htmlFor={facility.name}>{facility.name}</label>
                             </div>
                         ))}
                     </div>
@@ -217,9 +255,9 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
                     </div>
                     {formData.cover_image && (
                         <div className="image-item">
-                            <p>{formData.cover_image}</p>
+                            <p>{URL.createObjectURL(formData.cover_image)}</p>
                             <div>
-                                <button type="button" className={"image-button"} onClick={() => window.open(formData.cover_image, '_blank')}>Open</button>
+                                <button type="button" className={"image-button"} onClick={() => window.open(URL.createObjectURL(formData.cover_image), '_blank')}>Open</button>
                                 <button type="button" className={"image-button"} onClick={() => setFormData({ ...formData, cover_image: '' })}>Delete</button>
                             </div>
                         </div>
@@ -235,7 +273,13 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
                         {formData.images.map((image, index) => (
                             <div key={index} className="image-item">
                                 <img
-                                src={typeof image === 'string' ? image : image.image_url}
+                                src={
+                                    typeof image === 'string'
+                                    ? image
+                                    : image instanceof File
+                                    ? URL.createObjectURL(image)
+                                    : image.image_url
+                                }
                                 alt="hotel"
                                 />
                                 <div>
