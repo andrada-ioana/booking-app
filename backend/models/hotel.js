@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       Hotel.belongsToMany(models.Facility, { through: 'HotelFacilities', as: 'facilities', foreignKey: 'HotelId' });
-      Hotel.hasMany(models.HotelImage, { foreignKey: 'HotelId', as: 'images' });
+      Hotel.hasMany(models.HotelImage, { foreignKey: 'HotelId', as: 'images', onDelete: 'CASCADE', hooks: true });
     }
   }
   Hotel.init({
