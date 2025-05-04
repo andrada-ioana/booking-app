@@ -77,22 +77,43 @@ app.post('/api/generation/stop', (req, res) => {
 
 app.post('/api/hotels/generate/:count', async (req, res) => {
   const count = parseInt(req.params.count, 10) || 5;
-  const newHotels = generateRandomHotels(count);
+  const allFacilities = await Facility.findAll();
+  const newHotels = generateRandomHotels(count, allFacilities);
   const createdHotels = [];
 
-  for (const hotel of newHotels) {
+  for (const hotelData of newHotels) {
     try {
-      const createdHotel = await Hotel.create(hotel);
+      const { facilities = [], images = [], ...hotelFields } = hotelData;
+
+      const createdHotel = await Hotel.create(hotelFields);
+
+      if (facilities.length > 0) {
+        const facilityInstances = await Facility.findAll({
+          where: { name: facilities }
+        });
+        await createdHotel.setFacilities(facilityInstances);
+      }
+
+      for (const img of images) {
+        if (img) {
+          await HotelImage.create({
+            image_url: img,
+            HotelId: createdHotel.id
+          });
+        }
+      }
+
       createdHotels.push(createdHotel);
       if (io) io.emit('newHotel', createdHotel);
     } catch (err) {
-      console.error('Error creating hotel:', err);
+      console.error('Error creating hotel with associations:', err);
     }
   }
 
   console.log(`Added ${createdHotels.length} hotels.`);
   res.status(201).json(createdHotels);
 });
+
 
 
 app.get('/api/hotels', async (req, res) => {
