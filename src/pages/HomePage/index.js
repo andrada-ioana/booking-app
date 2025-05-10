@@ -10,11 +10,22 @@ import Hotel from '../../types/Hotel';
 import { Link } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import MessageModal from '../../components/MessageModal';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
+import { usePaginatedHotels } from '../../hooks/usePaginatedHotels';
 
-const HomePage = ({filtersList, hotelsList, isGenerating, toggleGeneration}) => {
+const HomePage = ({ filtersList, isGenerating, toggleGeneration }) => {
+    const [itemsPerPage, setItemsPerPage] = useState(5);
+    
+    const {
+        hotels,
+        page,
+        nextPage,
+        prevPage,
+        hasMore,
+        isLoading
+    } = usePaginatedHotels(itemsPerPage);
     const location = useLocation();
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,9 +35,6 @@ const HomePage = ({filtersList, hotelsList, isGenerating, toggleGeneration}) => 
     const [selectedStars, setSelectedStars] = useState([]);
     const [filteredHotels, setFilteredHotels] = useState([]);
     const [sortOrder, setSortOrder] = useState('asc');
-
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(5); 
 
     useEffect(() => {
         if (location.state?.message) {
@@ -54,7 +62,7 @@ const HomePage = ({filtersList, hotelsList, isGenerating, toggleGeneration}) => 
     };
     
     useEffect(() => {
-        let filtered = [...hotelsList];
+        let filtered = [...hotels];
     
         if (searchTerm) {
             filtered = filtered.filter(
@@ -70,8 +78,7 @@ const HomePage = ({filtersList, hotelsList, isGenerating, toggleGeneration}) => 
     
         console.log("Filtered Hotels:", filtered);
         setFilteredHotels(filtered);
-        setCurrentPage(1);
-    }, [searchTerm, selectedStars, hotelsList]);
+    }, [searchTerm, selectedStars, hotels]);
 
     const sortHotelsByStars = () => {
         console.log("Sort Order:", sortOrder);
@@ -88,9 +95,6 @@ const HomePage = ({filtersList, hotelsList, isGenerating, toggleGeneration}) => 
     }
 
     console.log("Filtered Hotels with Valid Prices:", filteredHotels.map(h => h.price_per_night));
-
-    const totalPages = Math.ceil(filteredHotels.length / itemsPerPage);
-    const currentItems = filteredHotels.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     const averagePrice = filteredHotels.length > 0 
         ? filteredHotels.reduce((sum, hotel) => {
@@ -115,6 +119,14 @@ const HomePage = ({filtersList, hotelsList, isGenerating, toggleGeneration}) => 
             <HotelCard key={hotel.name} hotel={hotel} styleCard={highlightStyle} />
         );
     };
+
+      const renderPagination = () => (
+        <div className="pagination">
+        <button onClick={prevPage} disabled={page === 0 || isLoading}>Prev</button>
+        <span>Page {page + 1}</span>
+        <button onClick={nextPage} disabled={!hasMore || isLoading}>Next</button>
+        </div>
+    );
 
     console.log("Final Average Price:", averagePrice);
 
@@ -184,32 +196,14 @@ const HomePage = ({filtersList, hotelsList, isGenerating, toggleGeneration}) => 
                         )
                     )}
                 </div>
-                <div className="hotel-list">
-                    {currentItems.length > 0 ? (
-                        console.log("Average Price:", averagePrice),
-                        currentItems.map((hotel) => 
-                            renderHotelCard(hotel)
-                        )
-                        ) : (
-                        <p className="no-hotels">No hotels match your criteria.</p>
-                    )}
-                    {filteredHotels.length > itemsPerPage && (
-                        <div className="pagination">
-                            <button
-                                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                                disabled={currentPage === 1}
-                            >
-                                Prev
-                            </button>
-                            <span> Page {currentPage} of {totalPages} </span>
-                            <button
-                                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                                disabled={currentPage === totalPages}
-                            >
-                                Next
-                            </button>
-                        </div>
-                    )}
+                <div>
+                    {/* ... header, filters, search input, etc. */}
+                    <div className="hotel-list">
+                        {filteredHotels.map((hotel) => (
+                        <HotelCard key={hotel.name} hotel={hotel} />
+                        ))}
+                    </div>
+                    {renderPagination()}
                 </div>
             </div>
         </div>
@@ -220,7 +214,8 @@ HomePage.propTypes = {
     filtersList: PropTypes.array.isRequired,
     hotelsList: PropTypes.arrayOf(PropTypes.instanceOf(Object)).isRequired,
     isGenerating: PropTypes.bool.isRequired,
-    toggleGeneration: PropTypes.func.isRequired
+    toggleGeneration: PropTypes.func.isRequired,
+      loadMoreHotels: PropTypes.func.isRequired
 };
 
 export default HomePage

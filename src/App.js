@@ -20,12 +20,9 @@ function App() {
 
   const { isOnline, isServerUp, queueOperation } = useOfflineSync();
 
-  useEffect(() => {
-    fetch(`${process.env.REACT_APP_API_URL}/api/hotels`)
-      .then(res => res.json())
-      .then(data => setHotels(data))
-      .catch(err => console.error("API Error:", err));
+  const PAGE_SIZE = 50;
 
+  useEffect(() => {
     fetch(`${process.env.REACT_APP_API_URL}/api/filters`)
       .then(res => res.json())
       .then(data => setFilters(data))
@@ -169,6 +166,8 @@ function App() {
     setHotels(prev => prev.filter(h => h.name !== hotelName));
   };
 
+
+
   return (
     <Router>
       {!isOnline && <div className="network-alert">You're offline!</div>}
@@ -177,7 +176,7 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={<HomePage filtersList={filters} hotelsList={hotels} isGenerating={isGenerating} toggleGeneration={toggleGeneration}/>}
+          element={<HomePage filtersList={filters} isGenerating={isGenerating} toggleGeneration={toggleGeneration}/>}
         />
         <Route
           path="/hotel/:name"

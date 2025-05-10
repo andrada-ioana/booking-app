@@ -118,7 +118,12 @@ app.post('/api/hotels/generate/:count', async (req, res) => {
 
 app.get('/api/hotels', async (req, res) => {
   try {
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const offset = parseInt(req.query.offset, 10) || 0;
+
     const hotels = await Hotel.findAll({
+      limit,
+      offset,
       include: [{
         model: Facility,
         as: 'facilities',
@@ -129,7 +134,8 @@ app.get('/api/hotels', async (req, res) => {
         as: 'images',
         attributes: ['image_url'],
       }
-    ]
+    ],
+    order: [['createdAt', 'DESC']]
     });
     res.status(200).json(hotels);
   } catch (err) {

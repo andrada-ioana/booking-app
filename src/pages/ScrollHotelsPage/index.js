@@ -1,80 +1,56 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import HotelCard from '../../components/HotelCard';
 import Header from '../../components/Header';
 import './styles.css';
-
-const PAGE_SIZE = 10;
+import { usePaginatedHotels } from '../../hooks/usePaginatedHotels';
 
 const ScrollHotelsPage = () => {
-const [hotels, setHotels] = useState([]);
-const [allHotels, setAllHotels] = useState([]);
-const [index, setIndex] = useState(0);
-const loader = useRef(null);
+  const {
+    hotels,
+    hasMore,
+    isLoading,
+    nextPage,
+  } = usePaginatedHotels(50);
 
-useEffect(() => {
-    if (allHotels.length > 0 && hotels.length === 0) {
-      setHotels(allHotels.slice(0, PAGE_SIZE));
-      setIndex(PAGE_SIZE);
-    }
-  }, [allHotels, hotels.length]);
-  
-// Poll the server for updates every 5 seconds
-useEffect(() => {
-    const fetchHotels = async () => {
-    try {
-        const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels`);
-        const data = await res.json();
+  const loader = useRef(null);
 
-        // Only update if something changed (basic length check or more advanced logic)
-        if (data.length !== allHotels.length) {
-        setAllHotels(data);
-        }
-    } catch (err) {
-        console.error('Error fetching hotels:', err);
-    }
-    };
-
-    // Fetch immediately, then every 5 seconds
-    fetchHotels();
-    const interval = setInterval(fetchHotels, 5000);
-
-    return () => clearInterval(interval);
-}, [allHotels]);
-  
-
-  // Observer for infinite scroll
   useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && allHotels.length > 0) {
-        const nextHotels = [];
-
-        for (let i = 0; i < PAGE_SIZE; i++) {
-          const nextIndex = (index + i) % allHotels.length;
-          nextHotels.push(allHotels[nextIndex]);
+    const observer = new IntersectionObserver(
+      entries => {
+        const first = entries[0];
+        if (first.isIntersecting && hasMore && !isLoading) {
+          nextPage();
         }
-
-        setHotels(prev => [...prev, ...nextHotels]);
-        setIndex((prev) => (prev + PAGE_SIZE) % allHotels.length);
+      },
+      {
+        root: null,
+        rootMargin: "100px",  // start loading before the bottom
+        threshold: 1.0         // fully visible
       }
-    });
+    );
 
-    if (loader.current) observer.observe(loader.current);
+    const currentLoader = loader.current;
+    if (currentLoader) observer.observe(currentLoader);
+
     return () => {
-      if (loader.current) observer.unobserve(loader.current);
+      if (currentLoader) observer.unobserve(currentLoader);
     };
-  }, [index, allHotels]);
+  }, [hasMore, isLoading, nextPage]);
 
   return (
     <div>
       <Header />
       <div className="scroll-hotels">
-        <h2>Infinite Scroll Hotels (Looping)</h2>
+        <h2>Infinite Scroll Hotels</h2>
         {hotels.map((hotel, idx) => (
           <HotelCard key={`${hotel.name}-${idx}`} hotel={hotel} />
         ))}
-        <div ref={loader} className="loading-trigger">
-          Keep scrolling to see more hotels...
-        </div>
+        {hotels.length > 0 && hasMore && !isLoading && (
+          <div ref={loader} className="loading-trigger">
+            Keep scrolling to load more hotels...
+          </div>
+        )}
+        {!hasMore && <p className="end-of-list">You’ve reached the end.</p>}
       </div>
     </div>
   );
