@@ -1,4 +1,4 @@
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 const { Hotel, HotelImage } = require('./models');
 const { Facility } = require('./models');
 const { Filter, FilterOption } = require('./models');
@@ -415,6 +415,23 @@ app.delete('/api/hotels/:name/video', async (req, res) => {
   }
 });
 
+app.get('/api/statistics/avg-price-by-stars', async (req, res) => {
+  try {
+    const result = await Hotel.findAll({
+      attributes: [
+        'number_of_stars',
+        [Sequelize.fn('AVG', Sequelize.col('price_per_night')), 'avg_price']
+      ],
+      group: ['number_of_stars'],
+      order: [['number_of_stars', 'ASC']]
+    });
+
+    res.status(200).json(result);
+  } catch (err) {
+    console.error('Error calculating average prices:', err);
+    res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+});
 
 
 // Real-time: Only start server when not in test mode
