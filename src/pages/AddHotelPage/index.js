@@ -119,7 +119,8 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
         const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
             },
             body: JSON.stringify(hotelPayload)
         });
@@ -135,7 +136,10 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
             form.append('cover', formData.cover_image);
             await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/cover-image`, {
                 method: 'POST',
-                body: form
+                body: form,
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+                }
             });
         }
     
@@ -145,7 +149,10 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
             imageFiles.forEach(file => form.append('images', file));
             await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/images`, {
                 method: 'POST',
-                body: form
+                body: form,
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+                }
             });
         }
     
@@ -154,7 +161,10 @@ const AddHotelPage = ({ hotels, onAdd, allFacilities }) => {
             form.append('video', formData.videoFile);
             await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/video`, {
                 method: 'POST',
-                body: form
+                body: form,
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+                }
             });
         }
     

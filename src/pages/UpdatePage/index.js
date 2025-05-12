@@ -9,10 +9,9 @@ import { useEffect } from "react";
 
 
 
-const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
+const UpdatePage = ({ selectedHotel, fetchHotelByName, onUpdate, allFacilities }) => {
     const navigate = useNavigate();
     const { name } = useParams();
-    const hotel = hotels.find((hotel) => hotel.name === name);
     const [videoMarkedForDeletion, setVideoMarkedForDeletion] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -31,25 +30,25 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
     });
 
     useEffect(() => {
-        if (hotel) {
+        if (selectedHotel) {
             setFormData({
-                fname: hotel.name,
-                nrstars: hotel.number_of_stars,
-                location: hotel.location,
-                location_maps: hotel.location_maps,
-                price_per_night: hotel.price_per_night,
-                description: hotel.description,
-                facilities: Array.isArray(hotel.facilities)
-                ? hotel.facilities.map(f => f.name)
+                fname: selectedHotel.name,
+                nrstars: selectedHotel.number_of_stars,
+                location: selectedHotel.location,
+                location_maps: selectedHotel.location_maps,
+                price_per_night: selectedHotel.price_per_night,
+                description: selectedHotel.description,
+                facilities: Array.isArray(selectedHotel.facilities)
+                ? selectedHotel.facilities.map(f => f.name)
                 : [],
-                cover_image: hotel.cover_image,
-                images: Array.isArray(hotel.images) ? hotel.images : [], // Ensure images is an array
-                video_url: hotel.video_url || '',
-                video: hotel.video || '',
+                cover_image: selectedHotel.cover_image,
+                images: Array.isArray(selectedHotel.images) ? selectedHotel.images : [], // Ensure images is an array
+                video_url: selectedHotel.video_url || '',
+                video: selectedHotel.video || '',
                 videoFile: null
             });
         }
-    }, [hotel]);
+    }, [selectedHotel]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -75,7 +74,10 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
       
         const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/cover-image`, {
           method: 'POST',
-          body: form
+          body: form,
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}` // Include token in headers
+            }
         });
       
         const data = await res.json();
@@ -94,7 +96,10 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
       
         const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/images`, {
           method: 'POST',
-          body: form
+          body: form,
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+            }
         });
       
         const data = await res.json();
@@ -119,6 +124,9 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
       
           await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/images/${filename}`, {
             method: 'DELETE',
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+            }
           });
       
           // Remove from state
@@ -145,10 +153,13 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (videoMarkedForDeletion && hotel.video_url && !formData.videoFile) {
+        if (videoMarkedForDeletion && selectedHotel.video_url && !formData.videoFile) {
             try {
-              await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${hotel.name}/video`, {
+              await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${selectedHotel.name}/video`, {
                 method: 'DELETE',
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+                }
               });
             } catch (err) {
               console.error("Failed to delete video on server:", err);
@@ -199,7 +210,7 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
     });
       
 
-    if (!hotel) {
+    if (!selectedHotel) {
         return <div>Hotel not found</div>;
     }
 
@@ -328,7 +339,6 @@ const UpdatePage = ({ hotels, onUpdate, allFacilities }) => {
 };
 
 UpdatePage.propTypes = {
-    hotels: PropTypes.arrayOf(PropTypes.instanceOf(Hotel)).isRequired,
     onUpdate: PropTypes.func.isRequired
 };
 

@@ -11,38 +11,43 @@ import { Link, useParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 
-const HotelDescriptionPage = ({hotels, onDelete}) => {
+const HotelDescriptionPage = ({selectedHotel, fetchHotelByName, onDelete}) => {
     const { name } = useParams();
     const navigate = useNavigate();
-    const hotel = hotels.find((hotel) => hotel.name === name);
 
     const noImageAvailable = "../../assets/no-image-available.jpg";
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     const handleDelete = () => {
-        onDelete(hotel.name);
+        onDelete(selectedHotel.name);
         navigate("/", { state: { message: "Hotel successfully deleted" } });
     };
 
-    if (!hotel) {
-        return null;
+    useEffect(() => {
+        if (!selectedHotel || selectedHotel.name !== name) {
+        fetchHotelByName(name); // Load hotel from server
+        }
+    }, [name, selectedHotel, fetchHotelByName]);
+
+    if (!selectedHotel || selectedHotel.name !== name) {
+        return <div>Loading hotel details...</div>;
     }
 
     const handleNextImage = () => {
-        if (!hotel.images || hotel.images.length === 0) return;
-        setCurrentImageIndex((prevIndex) => (prevIndex + 1) % hotel.images.length);
+        if (!selectedHotel.images || selectedHotel.images.length === 0) return;
+        setCurrentImageIndex((prevIndex) => (prevIndex + 1) % selectedHotel.images.length);
     };
     
     const handlePrevImage = () => {
-        if (!hotel.images || hotel.images.length === 0) return;
-        setCurrentImageIndex((prevIndex) => (prevIndex - 1 + hotel.images.length) % hotel.images.length);
+        if (!selectedHotel.images || selectedHotel.images.length === 0) return;
+        setCurrentImageIndex((prevIndex) => (prevIndex - 1 + selectedHotel.images.length) % selectedHotel.images.length);
     };    
 
     const stars = [];
-    for (let i = 0; i < hotel.number_of_stars; i++) {
+    for (let i = 0; i < selectedHotel.number_of_stars; i++) {
         stars.push(<FaStar key={i} className='yellow-star' size={20} />);
     }
-    for(let i = hotel.number_of_stars; i < 5; i++) {
+    for(let i = selectedHotel.number_of_stars; i < 5; i++) {
         stars.push(<FaStar key={i} color='gray' size={20} />);
     }
 
@@ -58,15 +63,15 @@ const HotelDescriptionPage = ({hotels, onDelete}) => {
                     </Link>
                     <div className="hotel-info">
                         <div className="hotel-name">
-                            <div style={{marginRight: 8}}>{hotel.name}</div>
+                            <div style={{marginRight: 8}}>{selectedHotel.name}</div>
                             {stars}
                         </div>
-                        <a href={hotel.location_maps} target="_blank">{hotel.location}</a>
+                        <a href={selectedHotel.location_maps} target="_blank">{selectedHotel.location}</a>
                     </div>
                 </div>
                 
                 <div className="actions">
-                    <Link to={`/update/${hotel.name}`}>
+                    <Link to={`/update/${selectedHotel.name}`}>
                         <CustomButton label={"Edit Hotel"} className={"edit-button"} />
                     </Link>
                     <CustomButton label={"Remove Hotel"} className={"remove-button"} onClick={handleDelete} />
@@ -77,11 +82,11 @@ const HotelDescriptionPage = ({hotels, onDelete}) => {
             <div className="slideshow-container">
                 <div className="slideshow">
                     <MdKeyboardArrowLeft onClick={handlePrevImage} className="prev" />
-                    <img src={hotel.images?.[currentImageIndex]?.image_url || noImageAvailable } alt="hotel" className="slideshow-image" onError={(e) => (e.target.src = noImageAvailable)} />
+                    <img src={selectedHotel.images?.[currentImageIndex]?.image_url || noImageAvailable } alt="hotel" className="slideshow-image" onError={(e) => (e.target.src = noImageAvailable)} />
                     <MdKeyboardArrowRight onClick={handleNextImage} className="next" />
                 </div>
                 <div className="dots-container">
-                    {hotel.images?.length > 0 && hotel.images?.map((_, index) => (
+                    {selectedHotel.images?.length > 0 && selectedHotel.images?.map((_, index) => (
                         <span
                             key={index}
                             className={`dot ${currentImageIndex === index ? "active" : ""}`}
@@ -93,22 +98,22 @@ const HotelDescriptionPage = ({hotels, onDelete}) => {
 
             <div className="hotel-description">
                 <label className="description-label">Description</label>
-                {hotel.description}
+                {selectedHotel.description}
             </div>
 
             <div className="hotel-facilities">
                 <label className="facilities-label">Facilities</label>
                 <ul>
-                    {hotel.facilities?.map((facility, index) => (
+                    {selectedHotel.facilities?.map((facility, index) => (
                         <li key={index} className="facilities-list"><SiTicktick className="facility-icon" /><label style={{marginLeft: 5}}>{facility.name}</label></li>
                     ))}
                 </ul>
             </div>
 
-            {hotel.video_url && (
+            {selectedHotel.video_url && (
             <div className="hotel-video">
                 <video width="640" height="360" controls>
-                <source src={hotel.video_url} type="video/mp4" />
+                <source src={selectedHotel.video_url} type="video/mp4" />
                 Your browser does not support the video tag.
                 </video>
             </div>
@@ -118,7 +123,6 @@ const HotelDescriptionPage = ({hotels, onDelete}) => {
 };
 
 HotelDescriptionPage.propTypes = {
-    hotels: PropTypes.arrayOf(PropTypes.instanceOf(Hotel)).isRequired,
     onDelete: PropTypes.func.isRequired
 };
 

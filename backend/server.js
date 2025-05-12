@@ -1,4 +1,6 @@
+const { logAction } = require('./utils/logAction');
 const { Op, Sequelize } = require('sequelize');
+const { requireAuth, requireAdmin } = require('./middleware/auth');
 const { Hotel, HotelImage } = require('./models');
 const { Facility } = require('./models');
 const { Filter, FilterOption } = require('./models');
@@ -14,6 +16,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const { monitorSuspiciousUsers, startMonitorThread } = require('./monitor/monitorLogs');
+startMonitorThread();
+const adminController = require('./controllers/admin');
+app.get('/api/admin/monitored-users', requireAuth, requireAdmin, adminController.getMonitoredUsers);
+
 
 const os = require("os");
 const interfaces = os.networkInterfaces();
@@ -46,6 +53,16 @@ let io = null;
 
 let generationInterval = null;
 
+const authController = require('./controllers/auth');
+
+app.post('/api/auth/register', authController.register);
+app.post('/api/auth/login', authController.login);
+
+app.get('/api/test/run-monitor', async (req, res) => {
+  await monitorSuspiciousUsers();
+  res.send("Monitor check complete");
+});
+
 app.post('/api/generation/start', async (req, res) => {
   if (!generationInterval) {
     generationInterval = setInterval(async () => {
@@ -75,7 +92,7 @@ app.post('/api/generation/stop', (req, res) => {
   res.status(200).json({ message: "Generation was not running." });
 });
 
-app.post('/api/hotels/generate/:count', async (req, res) => {
+app.post('/api/hotels/generate/:count', requireAuth, async (req, res) => {
   const count = parseInt(req.params.count, 10) || 5;
   const allFacilities = await Facility.findAll();
   const newHotels = generateRandomHotels(count, allFacilities);
@@ -86,6 +103,7 @@ app.post('/api/hotels/generate/:count', async (req, res) => {
       const { facilities = [], images = [], ...hotelFields } = hotelData;
 
       const createdHotel = await Hotel.create(hotelFields);
+      await logAction(req.user.userId, 'CREATE', 'Hotel', createdHotel.id);
 
       if (facilities.length > 0) {
         const facilityInstances = await Facility.findAll({
@@ -116,7 +134,7 @@ app.post('/api/hotels/generate/:count', async (req, res) => {
 
 
 
-app.get('/api/hotels', async (req, res) => {
+app.get('/api/hotels', requireAuth, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit, 10) || 50;
     const offset = parseInt(req.query.offset, 10) || 0;
@@ -137,6 +155,7 @@ app.get('/api/hotels', async (req, res) => {
     ],
     order: [['createdAt', 'DESC']]
     });
+    await logAction(req.user.userId, 'READ', 'Hotel');
     res.status(200).json(hotels);
   } catch (err) {
     console.error('Error fetching hotels:', err);
@@ -175,7 +194,7 @@ app.get('/api/facilities', async (req, res) => {
   }
 });
 
-app.post('/api/hotels', async (req, res) => {
+app.post('/api/hotels', requireAuth, async (req, res) => {
   try {
     const { name, location, price_per_night, facilities = [], ...rest } = req.body;
 
@@ -190,6 +209,8 @@ app.post('/api/hotels', async (req, res) => {
       price_per_night,
       ...rest
     });
+
+    await logAction(req.user.userId, 'CREATE', 'Hotel', hotel.id);
 
     // If facilities are provided, link them
     console.log('Requested facilities:', facilities);
@@ -221,7 +242,7 @@ app.post('/api/hotels', async (req, res) => {
 });
 
 
-app.put('/api/hotels/:name', async(req, res) => {
+app.put('/api/hotels/:name', requireAuth, async(req, res) => {
   try {
     const hotel = await Hotel.findOne({ where: { name: req.params.name } });
     if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
@@ -242,6 +263,8 @@ app.put('/api/hotels/:name', async(req, res) => {
     }
 
     await hotel.update(updatedHotel);
+    await logAction(req.user.userId, 'UPDATE', 'Hotel', hotel.id);
+
     if (Array.isArray(updatedHotel.facilities)) {
       const facilities = await Facility.findAll({
         where: {
@@ -265,10 +288,11 @@ app.put('/api/hotels/:name', async(req, res) => {
   }
 });
 
-app.delete('/api/hotels/:name', async (req, res) => {
+app.delete('/api/hotels/:name', requireAuth, async (req, res) => {
   try {
     const result = await Hotel.destroy({ where: { name: req.params.name } });
     if (result === 0) return res.status(404).json({ error: 'Hotel not found' });
+    await logAction(req.user.userId, 'DELETE', 'Hotel');
     res.sendStatus(204);
   } catch (err) {
     console.error('Error deleting hotel:', err);
@@ -309,7 +333,7 @@ app.get('/download/:filename', (req, res) => {
   res.download(filePath);
 });
 
-app.post('/api/hotels/:name/cover-image', upload.single('cover'), async (req, res) => {
+app.post('/api/hotels/:name/cover-image', requireAuth, upload.single('cover'), async (req, res) => {
   try {
     const hotel = await Hotel.findOne({ where: { name: req.params.name } });
     if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
@@ -317,7 +341,7 @@ app.post('/api/hotels/:name/cover-image', upload.single('cover'), async (req, re
     const imageUrl = `http://${localIP}:${PORT}/uploads/${req.file.filename}`;
     hotel.cover_image = imageUrl;
     await hotel.save();
-
+    await logAction(req.user.userId, 'UPLOAD_COVER_IMAGE', 'Hotel', hotel.id);  
     res.status(200).json({ message: 'Cover image uploaded', imageUrl });
   } catch (err) {
     console.error('Error saving cover image:', err);
@@ -325,17 +349,20 @@ app.post('/api/hotels/:name/cover-image', upload.single('cover'), async (req, re
   }
 });
 
-
-app.post('/api/hotels/:name/images', upload.array('images'), async (req, res) => {
+app.post('/api/hotels/:name/images', requireAuth, upload.array('images'), async (req, res) => {
   const hotel = await Hotel.findOne({ where: { name: req.params.name } });
   if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
 
   try {
-    const imageUrls = req.files.map(file => {
+    const imageUrls = [];
+
+    for (const file of req.files) {
       const url = `http://${localIP}:${PORT}/uploads/${file.filename}`;
-      HotelImage.create({ image_url: url, HotelId: hotel.id }); // ← Set HotelId here!
-      return url;
-    });
+      const image = await HotelImage.create({ image_url: url, HotelId: hotel.id });
+
+      await logAction(req.user.userId, 'UPLOAD_IMAGE', 'HotelImage', image.id);
+      imageUrls.push(url);
+    }
 
     res.status(200).json({ message: 'Images uploaded', imageUrls });
   } catch (err) {
@@ -344,7 +371,25 @@ app.post('/api/hotels/:name/images', upload.array('images'), async (req, res) =>
   }
 });
 
-app.delete('/api/hotels/:name/images/:filename', async (req, res) => {
+// app.post('/api/hotels/:name/images', upload.array('images'), async (req, res) => {
+//   const hotel = await Hotel.findOne({ where: { name: req.params.name } });
+//   if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
+
+//   try {
+//     const imageUrls = req.files.map(file => {
+//       const url = `http://${localIP}:${PORT}/uploads/${file.filename}`;
+//       HotelImage.create({ image_url: url, HotelId: hotel.id }); // ← Set HotelId here!
+//       return url;
+//     });
+
+//     res.status(200).json({ message: 'Images uploaded', imageUrls });
+//   } catch (err) {
+//     console.error('Error saving images:', err);
+//     res.status(500).json({ error: 'Failed to upload images' });
+//   }
+// });
+
+app.delete('/api/hotels/:name/images/:filename', requireAuth, async (req, res) => {
   const { name, filename } = req.params;
   const hotel = await Hotel.findOne({ where: { name } });
 
@@ -364,7 +409,7 @@ app.delete('/api/hotels/:name/images/:filename', async (req, res) => {
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
-
+    await logAction(req.user.userId, 'DELETE_IMAGE', 'HotelImage', hotel.id);
     res.status(200).json({ message: 'Image deleted' });
   } catch (err) {
     console.error('Error deleting image:', err);
@@ -375,7 +420,7 @@ app.delete('/api/hotels/:name/images/:filename', async (req, res) => {
 
 app.use('/videos', express.static(path.join(__dirname, 'uploads')));
 
-app.post('/api/hotels/:name/video', upload.single('video'), async (req, res) => {
+app.post('/api/hotels/:name/video', requireAuth, upload.single('video'), async (req, res) => {
   const hotelName = req.params.name;
   const hotel = await Hotel.findOne({ where: { name: hotelName } });
   if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
@@ -385,6 +430,7 @@ app.post('/api/hotels/:name/video', upload.single('video'), async (req, res) => 
     hotel.video_url = `http://${localIP}:${PORT}/videos/${req.file.filename}`;
     await hotel.save(); // ← Save the changes
 
+    await logAction(req.user.userId, 'UPLOAD_VIDEO', 'Hotel', hotel.id);
     res.status(200).json({ message: 'Video uploaded', video_url: hotel.video_url });
   } catch (err) {
     console.error('Error saving video info:', err);
@@ -392,7 +438,7 @@ app.post('/api/hotels/:name/video', upload.single('video'), async (req, res) => 
   }
 });
 
-app.delete('/api/hotels/:name/video', async (req, res) => {
+app.delete('/api/hotels/:name/video', requireAuth, async (req, res) => {
   const hotel = await Hotel.findOne({ where: { name: req.params.name } });
   if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
 
@@ -407,7 +453,7 @@ app.delete('/api/hotels/:name/video', async (req, res) => {
     hotel.video = '';
     hotel.video_url = '';
     await hotel.save(); // ← Save the cleared fields
-
+    await logAction(req.user.userId, 'DELETE_VIDEO', 'Hotel', hotel.id);
     res.status(200).json({ message: 'Video deleted' });
   } catch (err) {
     console.error('Error deleting video:', err);
@@ -432,6 +478,27 @@ app.get('/api/statistics/avg-price-by-stars', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch statistics' });
   }
 });
+
+app.get('/api/hotels/:name', requireAuth, async (req, res) => {
+  try {
+    const hotel = await Hotel.findOne({
+      where: { name: req.params.name },
+      include: [
+        { model: Facility, as: 'facilities' },
+        { model: HotelImage, as: 'images', attributes: ['image_url'] }
+      ]
+    });
+
+    if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
+    res.json(hotel);
+  } catch (err) {
+    console.error('Error fetching hotel:', err);
+    res.status(500).json({ error: 'Failed to fetch hotel' });
+  }
+});
+
+
+
 
 
 // Real-time: Only start server when not in test mode

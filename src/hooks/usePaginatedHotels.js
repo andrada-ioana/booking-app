@@ -11,7 +11,15 @@ export function usePaginatedHotels(pageSize) {
     const offset = newPage * pageSize;
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels?limit=${pageSize}&offset=${offset}`);
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels?limit=${pageSize}&offset=${offset}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
       const data = await res.json();
 
       setHotels(data);

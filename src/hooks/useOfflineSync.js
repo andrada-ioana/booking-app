@@ -21,7 +21,15 @@ export function useOfflineSync() {
   // Detect server availability
   useEffect(() => {
     const checkServer = () => {
-      fetch(`${process.env.REACT_APP_API_URL}/api/hotels`)
+      fetch(`${process.env.REACT_APP_API_URL}/api/hotels`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      )
         .then(res => setIsServerUp(res.ok))
         .catch(() => setIsServerUp(false));
     };
@@ -39,7 +47,9 @@ export function useOfflineSync() {
         try {
           const fetchOptions = {
             method: op.method,
-            headers: { "Content-Type": "application/json" }
+            headers: { "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}` // Include token in headers
+             }
           };
       
           if (op.method !== "DELETE") {

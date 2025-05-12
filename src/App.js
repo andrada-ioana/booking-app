@@ -9,8 +9,12 @@ import AddHotelPage from './pages/AddHotelPage/index.js';
 import StatisticsPage from './pages/StatisticsPage/index.js';
 import { useOfflineSync } from './hooks/useOfflineSync.js';
 import ScrollHotelsPage from './pages/ScrollHotelsPage'
+import LoginPage from './pages/LoginPage';
+import AdminPage from './pages/AdminPage';
+
 
 function App() {
+  const [selectedHotel, setSelectedHotel] = useState(null);
   const [hotels, setHotels] = useState([]);
   const [filters, setFilters] = useState([]);
   const [facilities, setFacilities] = useState([]);
@@ -19,8 +23,28 @@ function App() {
   const generatorIntervalRef = useRef(null);
 
   const { isOnline, isServerUp, queueOperation } = useOfflineSync();
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
 
   const PAGE_SIZE = 50;
+
+  const fetchHotelByName = async (name) => {
+  try {
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${name}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!res.ok) throw new Error('Hotel not found');
+    const data = await res.json();
+    setSelectedHotel(data);
+  } catch (err) {
+    console.error("Error fetching hotel by name:", err);
+    setSelectedHotel(null);
+  }
+};
+
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_API_URL}/api/filters`)
@@ -40,8 +64,18 @@ function App() {
       generatorIntervalRef.current = setInterval(() => {
         fetch(`${process.env.REACT_APP_API_URL}/api/hotels/generate/1`, {
           method: 'POST',
+            headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
         })
-          .then(() => fetch(`${process.env.REACT_APP_API_URL}/api/hotels`))
+          .then(() => fetch(`${process.env.REACT_APP_API_URL}/api/hotels`,
+            {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`
+              }
+            }
+          ))
           .then(res => res.json())
           .then(data => setHotels(data))
           .catch(err => console.error("Error generating hotels:", err));
@@ -67,7 +101,9 @@ function App() {
 
     const response = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+       },
       body: JSON.stringify(newHotel),
     });
     if (!response.ok) {
@@ -82,7 +118,10 @@ function App() {
       try {
         const uploadResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${addedHotel.name}/video`, {
           method: 'POST',
-          body: videoForm
+          body: videoForm,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+          }
         });
   
         if (uploadResponse.ok) {
@@ -117,7 +156,9 @@ function App() {
   
     const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${updatedHotel.name}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+       },
       body: JSON.stringify(hotelData),
     });
   
@@ -136,6 +177,9 @@ function App() {
         const videoRes = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${updatedHotel.name}/video`, {
           method: 'POST',
           body: videoForm,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+          }
         });
   
         if (videoRes.ok) {
@@ -162,6 +206,9 @@ function App() {
     }
     await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${hotelName}`, {
       method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+      }
     });
     setHotels(prev => prev.filter(h => h.name !== hotelName));
   };
@@ -180,11 +227,11 @@ function App() {
         />
         <Route
           path="/hotel/:name"
-          element={<HotelDescriptionPage hotels={hotels} onDelete={handleDelete} />}
+          element={<HotelDescriptionPage selectedHotel={selectedHotel} fetchHotelByName={fetchHotelByName} onDelete={handleDelete} />}
         />
         <Route
           path="/update/:name"
-          element={<UpdatePage hotels={hotels} onUpdate={handleUpdate} allFacilities={facilities} />}
+          element={<UpdatePage selectedHotel={selectedHotel} fetchHotelByName={fetchHotelByName} onUpdate={handleUpdate} allFacilities={facilities} />}
         />
         <Route
           path="/add-hotel"
@@ -198,6 +245,11 @@ function App() {
           path="/scroll-hotels"
           element={<ScrollHotelsPage />}
         />
+        <Route
+          path="/login"
+          element={<LoginPage />}
+        />
+        <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </Router>
   );
