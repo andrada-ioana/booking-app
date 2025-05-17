@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import './App.css';
 import HomePage from './pages/HomePage';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import HotelDescriptionPage from './pages/HotelDescriptionPage';
 import UpdatePage from './pages/UpdatePage';
 import { useState } from 'react';
@@ -221,10 +221,10 @@ function App() {
       {isOnline && !isServerUp && <div className="network-alert">Server is down!</div>}
       
       <Routes>
-        <Route
-          path="/"
-          element={<HomePage filtersList={filters} isGenerating={isGenerating} toggleGeneration={toggleGeneration}/>}
-        />
+        <Route path="/" element={ isLoggedIn ? (<Navigate to="/home" />) : (<LoginPage />)}/>
+
+        <Route path="/home" element={<HomePage filtersList={filters} isGenerating={isGenerating} toggleGeneration={toggleGeneration}/>}/>
+
         <Route
           path="/hotel/:name"
           element={<HotelDescriptionPage selectedHotel={selectedHotel} fetchHotelByName={fetchHotelByName} onDelete={handleDelete} />}
