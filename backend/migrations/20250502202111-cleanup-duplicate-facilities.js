@@ -5,7 +5,7 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     // First, remove the foreign key constraint if it exists
     try {
-      await queryInterface.removeConstraint('hotelfacilities', 'hotelfacilities_ibfk_2');
+      await queryInterface.removeConstraint('HotelFacilities', 'hotelfacilities_ibfk_2');
     } catch (error) {
       console.log('Foreign key constraint might not exist, continuing...');
     }
@@ -31,9 +31,9 @@ module.exports = {
         const keepId = duplicates[0].id;
         const deleteIds = duplicates.slice(1).map(f => f.id);
 
-        // Update references in hotelfacilities
+        // Update references in HotelFacilities
         await queryInterface.sequelize.query(
-          'UPDATE hotelfacilities SET facilityId = ? WHERE facilityId IN (?)',
+          'UPDATE HotelFacilities SET FacilityId = ? WHERE FacilityId IN (?)',
           {
             replacements: [keepId, deleteIds],
             type: queryInterface.sequelize.QueryTypes.UPDATE
@@ -59,17 +59,21 @@ module.exports = {
     }
 
     // Re-add the foreign key constraint
-    await queryInterface.addConstraint('hotelfacilities', {
-      fields: ['facilityId'],
-      type: 'foreign key',
-      name: 'hotelfacilities_ibfk_2',
-      references: {
-        table: 'Facilities',
-        field: 'id'
-      },
-      onDelete: 'CASCADE',
-      onUpdate: 'CASCADE'
-    });
+    try {
+      await queryInterface.addConstraint('HotelFacilities', {
+        fields: ['FacilityId'],
+        type: 'foreign key',
+        name: 'hotelfacilities_ibfk_2',
+        references: {
+          table: 'Facilities',
+          field: 'id'
+        },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE'
+      });
+    } catch (error) {
+      console.log('Failed to add foreign key constraint, continuing...');
+    }
   },
 
   async down(queryInterface, Sequelize) {

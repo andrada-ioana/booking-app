@@ -3,7 +3,7 @@ FROM node:18-alpine
 WORKDIR /usr/src/app
 
 # Install build dependencies for bcrypt
-RUN apk add --no-cache python3 make g++ bash
+RUN apk add --no-cache python3 make g++ bash dos2unix
 
 # Install wait-for-it script
 COPY wait-for-it.sh /wait-for-it.sh
@@ -19,8 +19,8 @@ COPY . .
 # Create uploads directory and set permissions
 RUN mkdir -p uploads && chmod 777 uploads
 
-# Make start script executable
-RUN chmod +x start.sh
+# Fix line endings and make start script executable
+RUN dos2unix start.sh && chmod +x start.sh
 
 EXPOSE 3001
 

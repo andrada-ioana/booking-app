@@ -13,7 +13,7 @@ const LoginPage = () => {
     setErrorMsg('');
 
     try {
-      const baseUrl = process.env.REACT_APP_API_URL || '';
+      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost';
       const res = await fetch(`${baseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
