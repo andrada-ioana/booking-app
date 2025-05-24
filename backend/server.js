@@ -25,20 +25,48 @@ app.get('/api/admin/monitored-users', requireAuth, requireAdmin, adminController
 const os = require("os");
 const interfaces = os.networkInterfaces();
 
-// Use localhost instead of internal IP
-const localIP = 'localhost';
+// Use relative URLs for production
+const localIP = process.env.NODE_ENV === 'production' ? '' : 'localhost';
 
 const multer = require('multer');
 const upload = multer({
   storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'uploads'),
-    filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+    destination: (req, file, cb) => {
+      console.log('Storing file:', file.originalname);
+      cb(null, 'uploads');
+    },
+    filename: (req, file, cb) => {
+      const filename = Date.now() + '-' + file.originalname;
+      console.log('Generated filename:', filename);
+      cb(null, filename);
+    }
   }),
   limits: {
-    fileSize: 1024 * 1024 * 500 // 500MB max file size
+    fileSize: 500 * 1024 * 1024, // 500MB max file size
+    files: 10 // Maximum 10 files per request
+  },
+  fileFilter: (req, file, cb) => {
+    console.log('Checking file type:', file.mimetype);
+    // Accept images and videos
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only images and videos are allowed.'));
+    }
   }
 });
 
+// Error handling middleware for multer
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    console.error('Multer error:', err);
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'File too large. Maximum size is 500MB.' });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+  next(err);
+});
 
 // WebSocket server will be created only if not in test mode
 let server = null;
@@ -132,6 +160,10 @@ app.get('/api/hotels', requireAuth, async (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 50;
     const offset = parseInt(req.query.offset, 10) || 0;
 
+    if (isNaN(limit) || isNaN(offset) || limit < 0 || offset < 0) {
+      return res.status(400).json({ error: 'Invalid pagination parameters' });
+    }
+
     const hotels = await Hotel.findAll({
       limit,
       offset,
@@ -144,10 +176,10 @@ app.get('/api/hotels', requireAuth, async (req, res) => {
         model: HotelImage,
         as: 'images',
         attributes: ['image_url'],
-      }
-    ],
-    order: [['createdAt', 'DESC']]
+      }],
+      order: [['createdAt', 'DESC']]
     });
+
     await logAction(req.user.userId, 'READ', 'Hotel');
     res.status(200).json(hotels);
   } catch (err) {
@@ -240,10 +272,15 @@ app.post('/api/hotels', requireAuth, async (req, res) => {
 
 app.put('/api/hotels/:name', requireAuth, async(req, res) => {
   try {
+    console.log('Updating hotel:', req.params.name);
+    console.log('Request body:', req.body);
+    
     const hotel = await Hotel.findOne({ where: { name: req.params.name } });
     if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
 
     const updatedHotel = req.body;
+    console.log('Video file in request:', !!req.file);
+    console.log('Video URL in request:', updatedHotel.video_url);
 
     if (!updatedHotel.name || !updatedHotel.location || !updatedHotel.price_per_night) {
       return res.status(400).json({ error: 'Missing required fields.' });
@@ -259,6 +296,7 @@ app.put('/api/hotels/:name', requireAuth, async(req, res) => {
     }
 
     await hotel.update(updatedHotel);
+    console.log('Hotel updated with data:', hotel.toJSON());
     await logAction(req.user.userId, 'UPDATE', 'Hotel', hotel.id);
 
     if (Array.isArray(updatedHotel.facilities)) {
@@ -276,6 +314,7 @@ app.put('/api/hotels/:name', requireAuth, async(req, res) => {
       where: { id: hotel.id },
       include: [{ model: Facility, as: 'facilities' }]
     });
+    console.log('Final hotel data:', updatedData.toJSON());
 
     res.json(updatedData);
   } catch (err) {
@@ -329,12 +368,17 @@ app.get('/download/:filename', (req, res) => {
   res.download(filePath);
 });
 
+// Helper function to construct URLs
+const constructUrl = (filename) => {
+  return `/uploads/${filename}`;
+};
+
 app.post('/api/hotels/:name/cover-image', requireAuth, upload.single('cover'), async (req, res) => {
   try {
     const hotel = await Hotel.findOne({ where: { name: req.params.name } });
     if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
 
-    const imageUrl = `http://${localIP}:${PORT}/uploads/${req.file.filename}`;
+    const imageUrl = constructUrl(req.file.filename);
     hotel.cover_image = imageUrl;
     await hotel.save();
     await logAction(req.user.userId, 'UPLOAD_COVER_IMAGE', 'Hotel', hotel.id);  
@@ -353,7 +397,7 @@ app.post('/api/hotels/:name/images', requireAuth, upload.array('images'), async 
     const imageUrls = [];
 
     for (const file of req.files) {
-      const url = `http://${localIP}:${PORT}/uploads/${file.filename}`;
+      const url = constructUrl(file.filename);
       const image = await HotelImage.create({ image_url: url, HotelId: hotel.id });
 
       await logAction(req.user.userId, 'UPLOAD_IMAGE', 'HotelImage', image.id);
@@ -366,24 +410,6 @@ app.post('/api/hotels/:name/images', requireAuth, upload.array('images'), async 
     res.status(500).json({ error: 'Failed to upload images' });
   }
 });
-
-// app.post('/api/hotels/:name/images', upload.array('images'), async (req, res) => {
-//   const hotel = await Hotel.findOne({ where: { name: req.params.name } });
-//   if (!hotel) return res.status(404).json({ error: 'Hotel not found' });
-
-//   try {
-//     const imageUrls = req.files.map(file => {
-//       const url = `http://${localIP}:${PORT}/uploads/${file.filename}`;
-//       HotelImage.create({ image_url: url, HotelId: hotel.id }); // ← Set HotelId here!
-//       return url;
-//     });
-
-//     res.status(200).json({ message: 'Images uploaded', imageUrls });
-//   } catch (err) {
-//     console.error('Error saving images:', err);
-//     res.status(500).json({ error: 'Failed to upload images' });
-//   }
-// });
 
 app.delete('/api/hotels/:name/images/:filename', requireAuth, async (req, res) => {
   const { name, filename } = req.params;
@@ -423,8 +449,8 @@ app.post('/api/hotels/:name/video', requireAuth, upload.single('video'), async (
 
   try {
     hotel.video = req.file.filename;
-    hotel.video_url = `http://${localIP}:${PORT}/videos/${req.file.filename}`;
-    await hotel.save(); // ← Save the changes
+    hotel.video_url = constructUrl(req.file.filename);
+    await hotel.save();
 
     await logAction(req.user.userId, 'UPLOAD_VIDEO', 'Hotel', hotel.id);
     res.status(200).json({ message: 'Video uploaded', video_url: hotel.video_url });
@@ -493,9 +519,10 @@ app.get('/api/hotels/:name', requireAuth, async (req, res) => {
   }
 });
 
-
-
-
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 
 // Real-time: Only start server when not in test mode
 if (process.env.NODE_ENV !== 'test') {

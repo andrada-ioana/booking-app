@@ -5,33 +5,38 @@ export function usePaginatedHotels(pageSize) {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const baseUrl = process.env.REACT_APP_API_URL || '';
 
   const fetchPage = useCallback(async (newPage = 0) => {
     setIsLoading(true);
     const offset = newPage * pageSize;
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels?limit=${pageSize}&offset=${offset}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
+      const res = await fetch(`${baseUrl}/api/hotels?limit=${pageSize}&offset=${offset}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         }
-      );
-      const data = await res.json();
+      });
 
+      if (!res.ok) {
+        throw new Error(`Failed to fetch hotels: ${res.status}`);
+      }
+
+      const data = await res.json();
       setHotels(data);
       setHasMore(data.length === pageSize);
       setPage(newPage);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error("Error fetching hotels:", err);
+      setHotels([]);
+      setHasMore(false);
     } finally {
       setIsLoading(false);
     }
-  }, [pageSize]);
+  }, [pageSize, baseUrl]);
 
   const nextPage = () => {
     if (hasMore && !isLoading) {
@@ -47,7 +52,7 @@ export function usePaginatedHotels(pageSize) {
 
   useEffect(() => {
     fetchPage(0);
-  }, [fetchPage, pageSize]);
+  }, [fetchPage]);
 
   return {
     hotels,

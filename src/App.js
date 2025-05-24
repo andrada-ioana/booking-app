@@ -13,80 +13,90 @@ import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import RegisterPage from './pages/RegisterPage';
 
-
 function App() {
   const [selectedHotel, setSelectedHotel] = useState(null);
   const [hotels, setHotels] = useState([]);
   const [filters, setFilters] = useState([]);
   const [facilities, setFacilities] = useState([]);
-
   const [isGenerating, setIsGenerating] = useState(false);
   const generatorIntervalRef = useRef(null);
-
   const { isOnline, isServerUp, queueOperation } = useOfflineSync();
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
 
   const PAGE_SIZE = 50;
+  const baseUrl = process.env.REACT_APP_API_URL || '';
 
   const fetchHotelByName = async (name) => {
-  try {
-    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${name}`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+    try {
+      const res = await fetch(`${baseUrl}/api/hotels/${name}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
 
-    if (!res.ok) throw new Error('Hotel not found');
-    const data = await res.json();
-    setSelectedHotel(data);
-  } catch (err) {
-    console.error("Error fetching hotel by name:", err);
-    setSelectedHotel(null);
-  }
-};
-
+      if (!res.ok) throw new Error('Hotel not found');
+      const data = await res.json();
+      setSelectedHotel(data);
+    } catch (err) {
+      console.error("Error fetching hotel by name:", err);
+      setSelectedHotel(null);
+    }
+  };
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_API_URL}/api/filters`)
-      .then(res => res.json())
-      .then(data => setFilters(data))
-      .catch(err => console.error("API Error:", err));
-      
+    const fetchInitialData = async () => {
+      try {
+        // Fetch filters
+        const filtersRes = await fetch(`${baseUrl}/api/filters`);
+        if (!filtersRes.ok) throw new Error('Failed to fetch filters');
+        const filtersData = await filtersRes.json();
+        setFilters(filtersData);
 
-    fetch(`${process.env.REACT_APP_API_URL}/api/facilities`)
-      .then(res => res.json())
-      .then(data => setFacilities(data))
-      .catch(err => console.error("API Error:", err)); 
-  }, []);
+        // Fetch facilities
+        const facilitiesRes = await fetch(`${baseUrl}/api/facilities`);
+        if (!facilitiesRes.ok) throw new Error('Failed to fetch facilities');
+        const facilitiesData = await facilitiesRes.json();
+        setFacilities(facilitiesData);
+      } catch (err) {
+        console.error("Error fetching initial data:", err);
+      }
+    };
+
+    fetchInitialData();
+  }, [baseUrl]);
 
   useEffect(() => {
     if (isGenerating) {
-      generatorIntervalRef.current = setInterval(() => {
-        fetch(`${process.env.REACT_APP_API_URL}/api/hotels/generate/1`, {
-          method: 'POST',
+      generatorIntervalRef.current = setInterval(async () => {
+        try {
+          await fetch(`${baseUrl}/api/hotels/generate/1`, {
+            method: 'POST',
             headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-          .then(() => fetch(`${process.env.REACT_APP_API_URL}/api/hotels`,
-            {
-              method: 'GET',
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`
-              }
+              Authorization: `Bearer ${localStorage.getItem('token')}`
             }
-          ))
-          .then(res => res.json())
-          .then(data => setHotels(data))
-          .catch(err => console.error("Error generating hotels:", err));
+          });
+
+          const hotelsRes = await fetch(`${baseUrl}/api/hotels`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+
+          if (!hotelsRes.ok) throw new Error('Failed to fetch hotels');
+          const hotelsData = await hotelsRes.json();
+          setHotels(hotelsData);
+        } catch (err) {
+          console.error("Error generating hotels:", err);
+        }
       }, 5000);
     } else {
       clearInterval(generatorIntervalRef.current);
     }
 
     return () => clearInterval(generatorIntervalRef.current);
-  }, [isGenerating]);
+  }, [isGenerating, baseUrl]);
 
   const toggleGeneration = () => {
     setIsGenerating(prev => !prev);
@@ -100,43 +110,41 @@ function App() {
 
     const { videoFile, ...hotelData } = newHotel;
 
-    const response = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
-       },
-      body: JSON.stringify(newHotel),
-    });
-    if (!response.ok) {
-      console.error("Failed to add hotel");
-      return;
-    }
-    const addedHotel = await response.json();
-    if (videoFile) {
-      const videoForm = new FormData();
-      videoForm.append("video", videoFile);
-  
-      try {
-        const uploadResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${addedHotel.name}/video`, {
+    try {
+      const response = await fetch(`${baseUrl}/api/hotels`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(newHotel),
+      });
+
+      if (!response.ok) throw new Error('Failed to add hotel');
+      const addedHotel = await response.json();
+
+      if (videoFile) {
+        const videoForm = new FormData();
+        videoForm.append("video", videoFile);
+
+        const uploadResponse = await fetch(`${baseUrl}/api/hotels/${addedHotel.name}/video`, {
           method: 'POST',
           body: videoForm,
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+            Authorization: `Bearer ${localStorage.getItem('token')}`
           }
         });
-  
+
         if (uploadResponse.ok) {
           const { video_url } = await uploadResponse.json();
           addedHotel.video_url = video_url;
-        } else {
-          console.warn("Video upload failed");
         }
-      } catch (err) {
-        console.error("Video upload error:", err);
       }
+
+      setHotels(prev => [...prev, addedHotel]);
+    } catch (err) {
+      console.error("Error adding hotel:", err);
     }
-  
-    setHotels(prev => [...prev, addedHotel]);
   };
 
   const handleUpdate = async (updatedHotel) => {
@@ -144,77 +152,76 @@ function App() {
       queueOperation("PUT", updatedHotel, `/${updatedHotel.name}`);
       return;
     }
-  
+
     const { videoFile, video_url, video, ...hotelData } = updatedHotel;
 
-    if (!videoFile) {
-      hotelData.video = video;
-      hotelData.video_url = video_url;
-    } else {
-      hotelData.video = ""; // let backend overwrite after upload
-      hotelData.video_url = "";
-    }
-  
-    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${updatedHotel.name}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
-       },
-      body: JSON.stringify(hotelData),
-    });
-  
-    if (!res.ok) {
-      console.error("Failed to update hotel");
-      return;
-    }
-  
-    const savedHotel = await res.json();
-  
-    if (videoFile) {
-      const videoForm = new FormData();
-      videoForm.append("video", videoFile);
-  
-      try {
-        const videoRes = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${updatedHotel.name}/video`, {
+    try {
+      if (!videoFile) {
+        hotelData.video = video;
+        hotelData.video_url = video_url;
+      } else {
+        hotelData.video = "";
+        hotelData.video_url = "";
+      }
+
+      const res = await fetch(`${baseUrl}/api/hotels/${updatedHotel.name}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(hotelData),
+      });
+
+      if (!res.ok) throw new Error('Failed to update hotel');
+      const savedHotel = await res.json();
+
+      if (videoFile) {
+        const videoForm = new FormData();
+        videoForm.append("video", videoFile);
+
+        const videoRes = await fetch(`${baseUrl}/api/hotels/${updatedHotel.name}/video`, {
           method: 'POST',
           body: videoForm,
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+            Authorization: `Bearer ${localStorage.getItem('token')}`
           }
         });
-  
+
         if (videoRes.ok) {
           const { video_url } = await videoRes.json();
           savedHotel.video_url = video_url;
-        } else {
-          console.warn("Video upload failed");
         }
-      } catch (err) {
-        console.error("Video upload error:", err);
       }
+
+      setHotels(prev =>
+        prev.map(h => (h.name === savedHotel.name ? savedHotel : h))
+      );
+    } catch (err) {
+      console.error("Error updating hotel:", err);
     }
-  
-    setHotels(prev =>
-      prev.map(h => (h.name === savedHotel.name ? savedHotel : h))
-    );
   };
-  
 
   const handleDelete = async (hotelName) => {
     if (!isOnline || !isServerUp) {
       queueOperation("DELETE", {}, `/${hotelName}`);
       return;
     }
-    await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${hotelName}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
-      }
-    });
-    setHotels(prev => prev.filter(h => h.name !== hotelName));
+
+    try {
+      const res = await fetch(`${baseUrl}/api/hotels/${hotelName}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!res.ok) throw new Error('Failed to delete hotel');
+      setHotels(prev => prev.filter(h => h.name !== hotelName));
+    } catch (err) {
+      console.error("Error deleting hotel:", err);
+    }
   };
-
-
 
   return (
     <Router>
@@ -222,38 +229,15 @@ function App() {
       {isOnline && !isServerUp && <div className="network-alert">Server is down!</div>}
       
       <Routes>
-        <Route path="/" element={ isLoggedIn ? (<Navigate to="/home" />) : (<LoginPage />)}/>
-
-        <Route path="/home" element={<HomePage filtersList={filters} isGenerating={isGenerating} toggleGeneration={toggleGeneration}/>}/>
-
-        <Route
-          path="/hotel/:name"
-          element={<HotelDescriptionPage selectedHotel={selectedHotel} fetchHotelByName={fetchHotelByName} onDelete={handleDelete} />}
-        />
-        <Route
-          path="/update/:name"
-          element={<UpdatePage selectedHotel={selectedHotel} fetchHotelByName={fetchHotelByName} onUpdate={handleUpdate} allFacilities={facilities} />}
-        />
-        <Route
-          path="/add-hotel"
-          element={<AddHotelPage hotels={hotels} onAdd={handleAdd} allFacilities={facilities} />}
-        />
-        <Route
-          path="/view-statistics"
-          element={<StatisticsPage hotelsList={hotels} />}
-        />
-        <Route
-          path="/scroll-hotels"
-          element={<ScrollHotelsPage />}
-        />
-        <Route
-          path="/login"
-          element={<LoginPage />}
-        />
-        <Route
-          path="/register"
-          element={<RegisterPage />}
-        />
+        <Route path="/" element={isLoggedIn ? <Navigate to="/home" /> : <LoginPage />} />
+        <Route path="/home" element={<HomePage filtersList={filters} isGenerating={isGenerating} toggleGeneration={toggleGeneration} />} />
+        <Route path="/hotel/:name" element={<HotelDescriptionPage selectedHotel={selectedHotel} fetchHotelByName={fetchHotelByName} onDelete={handleDelete} />} />
+        <Route path="/update/:name" element={<UpdatePage selectedHotel={selectedHotel} fetchHotelByName={fetchHotelByName} onUpdate={handleUpdate} allFacilities={facilities} />} />
+        <Route path="/add-hotel" element={<AddHotelPage hotels={hotels} onAdd={handleAdd} allFacilities={facilities} />} />
+        <Route path="/view-statistics" element={<StatisticsPage hotelsList={hotels} />} />
+        <Route path="/scroll-hotels" element={<ScrollHotelsPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </Router>

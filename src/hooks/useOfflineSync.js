@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 export function useOfflineSync() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isServerUp, setIsServerUp] = useState(true);
+  const baseUrl = process.env.REACT_APP_API_URL || '';
 
   // Detect browser offline/online
   useEffect(() => {
@@ -21,22 +22,19 @@ export function useOfflineSync() {
   // Detect server availability
   useEffect(() => {
     const checkServer = () => {
-      fetch(`${process.env.REACT_APP_API_URL}/api/hotels`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-          }
+      fetch(`${baseUrl}/api/health`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
         }
-      )
+      })
         .then(res => setIsServerUp(res.ok))
         .catch(() => setIsServerUp(false));
     };
 
     const interval = setInterval(checkServer, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [baseUrl]);
 
   // Sync queued operations
   useEffect(() => {
@@ -47,16 +45,18 @@ export function useOfflineSync() {
         try {
           const fetchOptions = {
             method: op.method,
-            headers: { "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}` // Include token in headers
-             }
+            headers: { 
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`
+            }
           };
       
           if (op.method !== "DELETE") {
             fetchOptions.body = JSON.stringify(op.data);
           }
       
-          await fetch(`${process.env.REACT_APP_API_URL}/api/hotels${op.url || ""}`, fetchOptions);
+          const res = await fetch(`${baseUrl}/api/hotels${op.url || ""}`, fetchOptions);
+          if (!res.ok) throw new Error('Failed to replay operation');
         } catch (err) {
           console.error("Failed to replay operation", op);
         }
@@ -64,7 +64,7 @@ export function useOfflineSync() {
 
       localStorage.removeItem("offlineQueue");
     }
-  }, [isOnline, isServerUp]);
+  }, [isOnline, isServerUp, baseUrl]);
 
   // Export functions
   const queueOperation = (method, data, url = "") => {

@@ -14,7 +14,8 @@ const RegisterPage = () => {
     setErrorMsg('');
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/register`, {
+      const baseUrl = process.env.REACT_APP_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, role }),
@@ -47,10 +48,22 @@ const RegisterPage = () => {
       {errorMsg && <p className="error">{errorMsg}</p>}
       <form onSubmit={handleSubmit}>
         <label>Username:</label>
-        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+        <input 
+          type="text" 
+          value={username} 
+          onChange={(e) => setUsername(e.target.value)} 
+          required 
+          autoComplete="username"
+        />
 
         <label>Password:</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <input 
+          type="password" 
+          value={password} 
+          onChange={(e) => setPassword(e.target.value)} 
+          required 
+          autoComplete="new-password"
+        />
 
         <label>Role:</label>
         <select value={role} onChange={(e) => setRole(e.target.value)}>

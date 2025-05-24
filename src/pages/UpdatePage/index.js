@@ -13,6 +13,7 @@ const UpdatePage = ({ selectedHotel, fetchHotelByName, onUpdate, allFacilities }
     const navigate = useNavigate();
     const { name } = useParams();
     const [videoMarkedForDeletion, setVideoMarkedForDeletion] = useState(false);
+    const baseUrl = process.env.REACT_APP_API_URL || '';
 
     const [formData, setFormData] = useState({
         fname: '',
@@ -72,21 +73,28 @@ const UpdatePage = ({ selectedHotel, fetchHotelByName, onUpdate, allFacilities }
         const form = new FormData();
         form.append('cover', file);
       
-        const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/cover-image`, {
-          method: 'POST',
-          body: form,
+        try {
+          const res = await fetch(`${baseUrl}/api/hotels/${formData.fname}/cover-image`, {
+            method: 'POST',
+            body: form,
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}` // Include token in headers
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
-        });
-      
-        const data = await res.json();
-        if (!data.imageUrl) {
-          console.error('Invalid response:', data);
-          return;
+          });
+        
+          if (!res.ok) {
+            throw new Error(`Failed to upload cover image: ${res.status}`);
+          }
+        
+          const data = await res.json();
+          if (!data.imageUrl) {
+            throw new Error('Invalid response: missing imageUrl');
+          }
+        
+          setFormData((prev) => ({ ...prev, cover_image: data.imageUrl }));
+        } catch (err) {
+          console.error('Error uploading cover image:', err);
         }
-      
-        setFormData((prev) => ({ ...prev, cover_image: data.imageUrl }));
     };
       
       
@@ -94,24 +102,31 @@ const UpdatePage = ({ selectedHotel, fetchHotelByName, onUpdate, allFacilities }
         const form = new FormData();
         acceptedFiles.forEach(file => form.append('images', file));
       
-        const res = await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/images`, {
-          method: 'POST',
-          body: form,
+        try {
+          const res = await fetch(`${baseUrl}/api/hotels/${formData.fname}/images`, {
+            method: 'POST',
+            body: form,
             headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
-        });
-      
-        const data = await res.json();
-        if (!Array.isArray(data.imageUrls)) {
-          console.error('Invalid response:', data);
-          return;
+          });
+        
+          if (!res.ok) {
+            throw new Error(`Failed to upload images: ${res.status}`);
+          }
+        
+          const data = await res.json();
+          if (!Array.isArray(data.imageUrls)) {
+            throw new Error('Invalid response: missing imageUrls array');
+          }
+        
+          setFormData((prev) => ({
+            ...prev,
+            images: [...prev.images, ...data.imageUrls.map(url => ({ image_url: url }))]
+          }));
+        } catch (err) {
+          console.error('Error uploading images:', err);
         }
-      
-        setFormData((prev) => ({
-          ...prev,
-          images: [...prev.images, ...data.imageUrls]
-        }));
     };
       
       
@@ -122,7 +137,7 @@ const UpdatePage = ({ selectedHotel, fetchHotelByName, onUpdate, allFacilities }
           // Send DELETE request to backend (assumes image_url contains the filename)
           const filename = image.image_url.split('/').pop(); // e.g., "1714643541532-photo.jpg"
       
-          await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${formData.fname}/images/${filename}`, {
+          await fetch(`${baseUrl}/api/hotels/${formData.fname}/images/${filename}`, {
             method: 'DELETE',
             headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
@@ -152,17 +167,20 @@ const UpdatePage = ({ selectedHotel, fetchHotelByName, onUpdate, allFacilities }
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        console.log('Submit clicked. Current formData:', formData);
 
         if (videoMarkedForDeletion && selectedHotel.video_url && !formData.videoFile) {
+            console.log('Attempting to delete existing video:', selectedHotel.video_url);
             try {
-              await fetch(`${process.env.REACT_APP_API_URL}/api/hotels/${selectedHotel.name}/video`, {
-                method: 'DELETE',
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}` // Include token in headers
-                }
-              });
+                await fetch(`${baseUrl}/api/hotels/${selectedHotel.name}/video`, {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                console.log('Successfully deleted existing video');
             } catch (err) {
-              console.error("Failed to delete video on server:", err);
+                console.error("Failed to delete video on server:", err);
             }
         }
 
@@ -180,35 +198,56 @@ const UpdatePage = ({ selectedHotel, fetchHotelByName, onUpdate, allFacilities }
             formData.videoFile ? "" : formData.video_url
         );
         updatedHotel.videoFile = formData.videoFile;
+        console.log('Created updatedHotel object:', updatedHotel);
+        console.log('Video file present:', !!updatedHotel.videoFile);
+        console.log('Video URL:', updatedHotel.video_url);
+
         await onUpdate(updatedHotel);
         navigate(`/hotel/${formData.fname}`);
     };
 
     const { getRootProps: getRootPropsCoverImage, getInputProps: getInputPropsCoverImage } = useDropzone({
         onDrop: handleDropCoverImage,
-        accept: 'image/*',
+        accept: {
+            'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+        },
+        maxSize: 5 * 1024 * 1024, // 5MB
         multiple: false
     });
 
     const { getRootProps: getRootPropsImages, getInputProps: getInputPropsImages } = useDropzone({
         onDrop: handleDropImages,
-        accept: 'image/*'
+        accept: {
+            'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+        },
+        maxSize: 5 * 1024 * 1024, // 5MB
+        multiple: true
     });
 
     const { getRootProps: getRootPropsVideo, getInputProps: getInputPropsVideo } = useDropzone({
         onDrop: (acceptedFiles) => {
-          if (acceptedFiles.length > 0) {
-            setFormData((prev) => ({ ...prev, videoFile: acceptedFiles[0] }));
-          }
+            if (acceptedFiles.length > 0) {
+                setFormData((prev) => ({ ...prev, videoFile: acceptedFiles[0] }));
+            }
         },
         accept: {
-          'video/mp4': ['.mp4'],
-          'video/webm': ['.webm'],
-          'video/ogg': ['.ogv']
+            'video/mp4': ['.mp4'],
+            'video/webm': ['.webm'],
+            'video/ogg': ['.ogv']
         },
+        maxSize: 100 * 1024 * 1024, // 100MB
         multiple: false
     });
       
+
+    // Helper function to get full URL
+    const getFullUrl = (url) => {
+        if (!url) return '';
+        if (url.startsWith('http')) return url;
+        // Remove any leading slashes to avoid double slashes
+        const cleanUrl = url.startsWith('/') ? url.slice(1) : url;
+        return `${baseUrl}/${cleanUrl}`;
+    };
 
     if (!selectedHotel) {
         return <div>Hotel not found</div>;
@@ -270,7 +309,7 @@ const UpdatePage = ({ selectedHotel, fetchHotelByName, onUpdate, allFacilities }
                         <div className="image-item">
                             <p>{formData.cover_image}</p>
                             <div>
-                                <button type="button" className={"image-button"} onClick={() => window.open(formData.cover_image, '_blank')}>Open</button>
+                                <button type="button" className={"image-button"} onClick={() => window.open(getFullUrl(formData.cover_image), '_blank')}>Open</button>
                                 <button type="button" className={"image-button"} onClick={() => setFormData({ ...formData, cover_image: '' })}>Delete</button>
                             </div>
                         </div>
@@ -287,7 +326,7 @@ const UpdatePage = ({ selectedHotel, fetchHotelByName, onUpdate, allFacilities }
                             <div key={index} className="image-item">
                                 <p>{image.image_url}</p>
                                 <div>
-                                    <button type="button" className={"image-button"} onClick={() => window.open(image.image_url, '_blank')}>Open</button>
+                                    <button type="button" className={"image-button"} onClick={() => window.open(getFullUrl(image.image_url), '_blank')}>Open</button>
                                     <button type="button" className={"image-button"} onClick={() => handleDeleteImage(index)}>Delete</button>
                                 </div>
                             </div>
@@ -304,33 +343,32 @@ const UpdatePage = ({ selectedHotel, fetchHotelByName, onUpdate, allFacilities }
 
                     {formData.videoFile && (
                         <div className="video-preview">
-                        <p>Selected video: {formData.videoFile.name}</p>
-                        <video width="320" height="240" controls>
-                            <source src={URL.createObjectURL(formData.videoFile)} type="video/mp4" />
-                        </video>
-                        <div style={{ marginTop: 10 }}>
-                            <button type="button" className="image-button" onClick={handleDeleteVideo}>
-                            Delete Video
-                            </button>
-                        </div>
+                            <p>Selected video: {formData.videoFile.name}</p>
+                            <video width="320" height="240" controls>
+                                <source src={URL.createObjectURL(formData.videoFile)} type="video/mp4" />
+                            </video>
+                            <div style={{ marginTop: 10 }}>
+                                <button type="button" className="image-button" onClick={handleDeleteVideo}>
+                                    Delete Video
+                                </button>
+                            </div>
                         </div>
                     )}
 
                     {!formData.videoFile && formData.video_url && (
                         <div className="video-preview">
-                        <p>Current video:</p>
-                        <video width="320" height="240" controls>
-                            <source src={formData.video_url} type="video/mp4" />
-                        </video>
-                        <div style={{ marginTop: 10 }}>
-                            <button type="button" className="image-button" onClick={handleDeleteVideo}>
-                            Delete Video
-                            </button>
-                        </div>
+                            <p>Current video:</p>
+                            <video width="320" height="240" controls>
+                                <source src={getFullUrl(formData.video_url)} type="video/mp4" />
+                            </video>
+                            <div style={{ marginTop: 10 }}>
+                                <button type="button" className="image-button" onClick={handleDeleteVideo}>
+                                    Delete Video
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
-
 
                 <input type="submit" value="Submit" className="submit-update" />
             </form>

@@ -13,7 +13,8 @@ const LoginPage = () => {
     setErrorMsg('');
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
+      const baseUrl = process.env.REACT_APP_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -47,10 +48,22 @@ const LoginPage = () => {
       {errorMsg && <p className="error">{errorMsg}</p>}
       <form onSubmit={handleSubmit}>
         <label>Username:</label>
-        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+        <input 
+          type="text" 
+          value={username} 
+          onChange={(e) => setUsername(e.target.value)} 
+          required 
+          autoComplete="username"
+        />
 
         <label>Password:</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <input 
+          type="password" 
+          value={password} 
+          onChange={(e) => setPassword(e.target.value)} 
+          required 
+          autoComplete="current-password"
+        />
 
         <button type="submit">Login</button>
       </form>
