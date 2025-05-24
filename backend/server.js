@@ -186,7 +186,10 @@ app.get('/api/filters', async (req, res) => {
 
 app.get('/api/facilities', async (req, res) => {
   try {
-    const facilities = await Facility.findAll();
+    const facilities = await Facility.findAll({
+      attributes: ['id', 'name'],
+      order: [['name', 'ASC']]  // Order alphabetically
+    });
     res.status(200).json(facilities);
   } catch (err) {
     console.error('Error fetching facilities:', err);

@@ -11,6 +11,7 @@ import { useOfflineSync } from './hooks/useOfflineSync.js';
 import ScrollHotelsPage from './pages/ScrollHotelsPage'
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
+import RegisterPage from './pages/RegisterPage';
 
 
 function App() {
@@ -248,6 +249,10 @@ function App() {
         <Route
           path="/login"
           element={<LoginPage />}
+        />
+        <Route
+          path="/register"
+          element={<RegisterPage />}
         />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
