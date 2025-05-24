@@ -29,6 +29,8 @@ services:
       - DB_PASSWORD=mysqlpassword1234
       - DB_NAME=hotel_db
       - DB_PORT=3306
+    volumes:
+      - uploads-data:/usr/src/app/uploads
     networks:
       - app-network
 
@@ -50,4 +52,5 @@ networks:
     driver: bridge
 
 volumes:
-  mysql-data: 
+  mysql-data:
+  uploads-data: 

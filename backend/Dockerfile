@@ -16,6 +16,9 @@ RUN npm install
 
 COPY . .
 
+# Create uploads directory and set permissions
+RUN mkdir -p uploads && chmod 777 uploads
+
 # Make start script executable
 RUN chmod +x start.sh
 

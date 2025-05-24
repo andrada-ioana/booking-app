@@ -25,15 +25,8 @@ app.get('/api/admin/monitored-users', requireAuth, requireAdmin, adminController
 const os = require("os");
 const interfaces = os.networkInterfaces();
 
-let localIP = process.env.LOCAL_IP;
-for (const name in interfaces) {
-  for (const iface of interfaces[name]) {
-    if (iface.family === "IPv4" && !iface.internal) {
-      localIP = iface.address;
-      break;
-    }
-  }
-}
+// Use localhost instead of internal IP
+const localIP = 'localhost';
 
 const multer = require('multer');
 const upload = multer({
