@@ -543,9 +543,7 @@ if (process.env.NODE_ENV !== 'test') {
     });
   });
 
-  server.listen(PORT, () => {
-    console.log(`Server + WebSocket running at http://${localIP}:${PORT}`);
-  });
+  server.listen(PORT, '0.0.0.0', () => console.log(`Server running at http://0.0.0.0:${PORT}`));
 }
 
 module.exports = server || app;
