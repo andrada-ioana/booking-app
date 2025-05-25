@@ -75,3 +75,55 @@
 .description-link {
     align-self: flex-end;
 }
+
+
+@media (max-width: 600px) {
+  .hotel-card {
+    flex-direction: column;
+    align-items: flex-start;
+    height: auto;            /* let content dictate height */
+    padding: 4%;
+  }
+
+  .hotel-image {
+    width: 100%;
+    height: auto;            /* maintain aspect ratio */
+    margin-bottom: 12px;
+  }
+
+  .hotel-content {
+    width: 100%;
+  }
+
+  .hotel-name {
+    font-size: 18px;          /* smaller title on mobile */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;  /* truncate long names */
+    margin-bottom: 4px;
+  }
+
+  .hotel-details {
+    flex-wrap: wrap;          /* allow stars to wrap to next line */
+    gap: 4px;                 /* small gap between items */
+  }
+
+  .yellow-star,
+  .hotel-details svg {
+    width: 16px;
+    height: 16px;             /* smaller star icons */
+  }
+
+  .button-container {
+    width: 100%;              /* full-width button */
+    justify-content: center;
+    padding: 8px 0;
+    margin-right: 0;
+  }
+
+  .location-maps {
+    font-size: 13px;
+    margin-bottom: 6px;
+    display: inline-block;    /* keep link on its own line */
+  }
+}
