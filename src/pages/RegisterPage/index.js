@@ -32,11 +32,13 @@ const RegisterPage = () => {
       localStorage.setItem('userRole', data.user.role);
       localStorage.setItem('userId', data.user.id);
 
-      if (data.user.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/');
-      }
+      navigate('/login');
+
+      // if (data.user.role === 'admin') {
+      //   navigate('/admin');
+      // } else {
+      //   navigate('/');
+      // }
     } catch (err) {
       setErrorMsg(err.message);
     }

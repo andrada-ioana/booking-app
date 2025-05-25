@@ -24,4 +24,4 @@ RUN dos2unix start.sh && chmod +x start.sh
 
 EXPOSE 3001
 
-CMD ["/wait-for-it.sh", "db:3306", "--", "/usr/src/app/start.sh"] 
+CMD sh -c "/wait-for-it.sh \"${DB_HOST:-db}:${DB_PORT:-3306}\" -- /usr/src/app/start.sh" 
