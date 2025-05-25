@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 const HotelCard = ({hotel, styleCard}) => {
     const noImageAvailable = "../../assets/no-image-available.jpg";
     const stars = [];
+    const baseUrl = process.env.REACT_APP_API_URL || '';
     for (let i = 0; i < hotel.number_of_stars; i++) {
         stars.push(<FaStar key={i} className='yellow-star' />);
     }
@@ -18,7 +19,7 @@ const HotelCard = ({hotel, styleCard}) => {
     }
     return (
     <div className='hotel-card' style={styleCard}>
-        <img src={hotel.cover_image || noImageAvailable} alt="hotel image" className='hotel-image' />
+        <img src={`${baseUrl}${hotel.cover_image}` || noImageAvailable} alt="hotel image" className='hotel-image' />
         <div className='hotel-content'>
             <div className='hotel-info'>
                 <div className='hotel-details'>

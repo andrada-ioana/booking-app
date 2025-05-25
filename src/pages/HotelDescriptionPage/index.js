@@ -86,7 +86,7 @@ const HotelDescriptionPage = ({selectedHotel, fetchHotelByName, onDelete}) => {
                     <img
                         src={
                             selectedHotel.images?.[currentImageIndex]?.image_url
-                            ? `${baseUrl}/${selectedHotel.images[currentImageIndex].image_url}`
+                            ? `${baseUrl}${selectedHotel.images[currentImageIndex].image_url}`
                             : noImageAvailable
                         }
                         alt="hotel"
@@ -123,7 +123,7 @@ const HotelDescriptionPage = ({selectedHotel, fetchHotelByName, onDelete}) => {
             {selectedHotel.video_url && (
             <div className="hotel-video">
                 <video width="640" height="360" controls>
-                <source src={`${baseUrl}/${selectedHotel.video_url}`} type="video/mp4" />
+                <source src={`${baseUrl}${selectedHotel.video_url}`} type="video/mp4" />
                 Your browser does not support the video tag.
                 </video>
             </div>
