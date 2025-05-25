@@ -81,14 +81,18 @@
   .hotel-card {
     flex-direction: column;
     align-items: flex-start;
-    height: auto;            /* let content dictate height */
+    height: auto;           /* let content dictate height */
     padding: 4%;
+    overflow: hidden;        /* just in case */
   }
 
   .hotel-image {
     width: 100%;
-    height: auto;            /* maintain aspect ratio */
+    height: auto;           /* maintain aspect ratio */
+    max-height: 180px;      /* no image taller than this */
+    border-radius: 10px;
     margin-bottom: 12px;
+    object-fit: cover;
   }
 
   .hotel-content {
@@ -96,34 +100,40 @@
   }
 
   .hotel-name {
-    font-size: 18px;          /* smaller title on mobile */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;  /* truncate long names */
+    font-size: 18px;
+    line-height: 1.2;
     margin-bottom: 4px;
+
+    /* clamp to 2 lines with ellipsis */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
   }
 
   .hotel-details {
-    flex-wrap: wrap;          /* allow stars to wrap to next line */
-    gap: 4px;                 /* small gap between items */
+    flex-wrap: wrap;        /* let stars wrap */
+    gap: 4px;
   }
 
   .yellow-star,
   .hotel-details svg {
     width: 16px;
-    height: 16px;             /* smaller star icons */
-  }
-
-  .button-container {
-    width: 100%;              /* full-width button */
-    justify-content: center;
-    padding: 8px 0;
-    margin-right: 0;
+    height: 16px;           /* shrink star icons */
   }
 
   .location-maps {
     font-size: 13px;
     margin-bottom: 6px;
-    display: inline-block;    /* keep link on its own line */
+    display: inline-block;
+  }
+
+  .button-container {
+    width: 100%;            /* full-width tappable area */
+    justify-content: center;
+    padding: 8px 0;
+    margin-right: 0;
   }
 }
