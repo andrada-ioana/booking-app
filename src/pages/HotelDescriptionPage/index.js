@@ -14,6 +14,7 @@ import { useEffect } from "react";
 const HotelDescriptionPage = ({selectedHotel, fetchHotelByName, onDelete}) => {
     const { name } = useParams();
     const navigate = useNavigate();
+    const baseUrl = process.env.REACT_APP_API_URL || '';
 
     const noImageAvailable = "../../assets/no-image-available.jpg";
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -82,7 +83,16 @@ const HotelDescriptionPage = ({selectedHotel, fetchHotelByName, onDelete}) => {
             <div className="slideshow-container">
                 <div className="slideshow">
                     <MdKeyboardArrowLeft onClick={handlePrevImage} className="prev" />
-                    <img src={selectedHotel.images?.[currentImageIndex]?.image_url || noImageAvailable } alt="hotel" className="slideshow-image" onError={(e) => (e.target.src = noImageAvailable)} />
+                    <img
+                        src={
+                            selectedHotel.images?.[currentImageIndex]?.image_url
+                            ? `${baseUrl}/${selectedHotel.images[currentImageIndex].image_url}`
+                            : noImageAvailable
+                        }
+                        alt="hotel"
+                        className="slideshow-image"
+                        onError={e => (e.target.src = noImageAvailable)}
+                    />
                     <MdKeyboardArrowRight onClick={handleNextImage} className="next" />
                 </div>
                 <div className="dots-container">
@@ -113,7 +123,7 @@ const HotelDescriptionPage = ({selectedHotel, fetchHotelByName, onDelete}) => {
             {selectedHotel.video_url && (
             <div className="hotel-video">
                 <video width="640" height="360" controls>
-                <source src={selectedHotel.video_url} type="video/mp4" />
+                <source src={`${baseUrl}/${selectedHotel.video_url}`} type="video/mp4" />
                 Your browser does not support the video tag.
                 </video>
             </div>
