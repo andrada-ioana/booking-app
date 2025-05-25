@@ -2,6 +2,8 @@
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
+[build.args]
+REACT_APP_API_URL = "https://backend-production-a405.up.railway.app"
+
 [env]
 NODE_ENV = "production" 
-REACT_APP_API_URL = "https://backend-production-a405.up.railway.app"
